@@ -31,55 +31,34 @@ struct SModelLoadParams
 static const SModelLoadParams s_modelsToLoad[(size_t)EModel::Count] =
 {
     {nullptr, nullptr, false, 1.0f, {3.0, 0.5f, 0.0f}, EMaterial::Count},
-    { "assets/Models/bunny/bunny.obj", "assets/Models/bunny/", false, 1.0f, {0.0f, 0.0f, 0.0f}, EMaterial::Count },
     { "assets/Models/cube/cube.obj", "assets/Models/cube/", false, 1.0f, {-3.0f, 0.5f, 0.0f}, EMaterial::Count },
-#if LOAD_SPONZA()==1
-    { "assets/Models/mushroom.obj", "assets/Models/", true, 10.0f, {0.0f, 0.0f, 3.0f}, EMaterial::Mushroom },
-    { "assets/Models/tree.obj", "assets/Models/", true, 1.0f, {0.0f, 0.0f, -3.0f}, EMaterial::Tree },
-    { "assets/Models/rock.obj", "assets/Models/", true, 5.0f,{ -15.0f, 0.0f, 0.0f }, EMaterial::Rock },
-    { "assets/Models/cryteksponza/sponza.obj", "assets/Models/cryteksponza/", false, 0.01f,{ 0.0f, 0.0f, 25.0f }, EMaterial::Count },
-#endif
 };
 
 static const char* s_skyboxBaseFileName[(size_t)ESkyBox::Count] = 
 {
     "assets/Skyboxes/ashcanyon/ashcanyon%s.png",
-    "assets/Skyboxes/Dallas/Dallas%s.png",
-    "assets/Skyboxes/Marriot/Marriot%s.png",
     "assets/Skyboxes/mnight/mnight%s.png",
     "assets/Skyboxes/Vasa/Vasa%s.png",
-    "assets/Skyboxes/Test/Test%s.png",
 };
 
 static const char* s_skyboxBaseFileNameDiffuse [(size_t)ESkyBox::Count] = 
 {
     "assets/Skyboxes/ashcanyon/ashcanyonDiffuse%s.png",
-    "assets/Skyboxes/Dallas/DallasDiffuse%s.png",
-    "assets/Skyboxes/Marriot/MarriotDiffuse%s.png",
     "assets/Skyboxes/mnight/mnightDiffuse%s.png",
     "assets/Skyboxes/Vasa/VasaDiffuse%s.png",
-    nullptr, // the code uses the base one for the test skybox
 };
 
 static const char* s_skyboxBaseFileNameSpecular [(size_t)ESkyBox::Count] = 
 {
     "assets/Skyboxes/ashcanyon/ashcanyon%iSpecular%s.png",
-    "assets/Skyboxes/Dallas/Dallas%iSpecular%s.png",
-    "assets/Skyboxes/Marriot/Marriot%iSpecular%s.png",
     "assets/Skyboxes/mnight/mnight%iSpecular%s.png",
     "assets/Skyboxes/Vasa/Vasa%iSpecular%s.png",
-    nullptr, // the code uses the base one for the test skybox
 };
 
 // in "assets/PBRMaterialTextures/"
 static const char* s_materialFileNames[] =
 {
     // albedo, metalness, normal, roughness, ao
-#if LOAD_SPONZA()==1
-    "Mushroom/Albedo.jpg", "../black.png", "Mushroom/Normal.jpg", "Mushroom/Roughness.jpg", "../white.png",
-    "Rock/Albedo.jpg", "../black.png", "Rock/Normal.jpg", "Rock/Roughness.jpg", "../white.png",
-    "Tree/Albedo.jpg", "../black.png", "Tree/Normal.jpg", "Tree/Roughness.jpg", "../white.png",
-#endif
     "DriedMud/Albedo.jpg", "../black.png", "DriedMud/Normal.jpg", "DriedMud/Roughness.jpg", "../white.png",
     "greasy-pan-2-albedo.png", "greasy-pan-2-metal.png", "greasy-pan-2-normal.png", "greasy-pan-2-roughness.png", nullptr,
     "Iron-Scuffed_basecolor.png", "Iron-Scuffed_metallic.png", "Iron-Scuffed_normal.png", "Iron-Scuffed_roughness.png", nullptr,
@@ -597,17 +576,8 @@ void D3D12HelloTriangle::LoadSkyboxes()
     for (size_t i = 0; i < (size_t)ESkyBox::Count; ++i)
     {
         m_skyboxes[i].m_tex = TextureMgr::LoadCubeMap(m_device.Get(), m_commandList.Get(), s_skyboxBaseFileName[i], false);
-
-        if (i == (size_t)ESkyBox::Test)
-        {
-            m_skyboxes[i].m_texDiffuse = m_skyboxes[i].m_tex;
-            m_skyboxes[i].m_texSpecular = m_skyboxes[i].m_tex;
-        }
-        else
-        {
-            m_skyboxes[i].m_texDiffuse = TextureMgr::LoadCubeMap(m_device.Get(), m_commandList.Get(), s_skyboxBaseFileNameDiffuse[i], false);
-            m_skyboxes[i].m_texSpecular = TextureMgr::LoadCubeMapMips(m_device.Get(), m_commandList.Get(), s_skyboxBaseFileNameSpecular[i], 5, false);
-        }
+        m_skyboxes[i].m_texDiffuse = TextureMgr::LoadCubeMap(m_device.Get(), m_commandList.Get(), s_skyboxBaseFileNameDiffuse[i], false);
+        m_skyboxes[i].m_texSpecular = TextureMgr::LoadCubeMapMips(m_device.Get(), m_commandList.Get(), s_skyboxBaseFileNameSpecular[i], 5, false);
     }
 
     // Position, normal, tangent, uv
@@ -861,23 +831,11 @@ void D3D12HelloTriangle::OnUpdate()
     }
     if (m_keyState['2'])
     {
-        m_skyBox = ESkyBox::Dallas;
+        m_skyBox = ESkyBox::MNight;
     }
     if (m_keyState['3'])
     {
-        m_skyBox = ESkyBox::Marriot;
-    }
-    if (m_keyState['4'])
-    {
-        m_skyBox = ESkyBox::MNight;
-    }
-    if (m_keyState['5'])
-    {
         m_skyBox = ESkyBox::Vasa;
-    }
-    if (m_keyState['6'])
-    {
-        m_skyBox = ESkyBox::Test;
     }
 
     if (translation.x != 0 || translation.y != 0 || translation.z != 0)

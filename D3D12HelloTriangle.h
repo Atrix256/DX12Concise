@@ -11,8 +11,6 @@
 
 #pragma once
 
-#define LOAD_SPONZA() 0
-
 // uncomment this for pix data (and more renderdoc data) in release
 //#define USE_PIX
 
@@ -82,22 +80,14 @@ struct SConstantBuffer
 enum class ESkyBox
 {
    AshCanyon,
-   Dallas,
-   Marriot,
    MNight,
    Vasa,
-   Test,
 
    Count
 };
 
 enum class EMaterial
 {
-#if LOAD_SPONZA()==1
-    Mushroom,
-    Rock,
-    Tree,
-#endif
     DriedMud,
     GreasyPan,
     ScuffedIron,
@@ -128,14 +118,7 @@ enum class EMaterialTexture
 enum class EModel
 {
     Sphere,
-    Bunny,
     Cube,
-#if LOAD_SPONZA()==1
-    Mushroom,
-    Rock,
-    Tree,
-    Sponza,
-#endif
 
     Count
 };
