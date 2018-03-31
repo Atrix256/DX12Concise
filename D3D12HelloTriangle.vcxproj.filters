@@ -1,0 +1,108 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Assets">
+      <UniqueIdentifier>{09095d68-bcd7-45c4-b007-5c8ddb5d60a4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets\Shaders">
+      <UniqueIdentifier>{8b0cb0c9-e0d8-4107-91c8-11654fac88e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tinyobj">
+      <UniqueIdentifier>{0222f36e-abcc-4a1f-9f5e-0f01a8aa868f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="My Code">
+      <UniqueIdentifier>{50a92baf-3bec-4bbf-a2af-fd29e1d1861a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sample Code">
+      <UniqueIdentifier>{d0457f7a-e952-40e6-b09b-f66b3ca641ed}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="tinyobj\tiny_obj_loader.h">
+      <Filter>tinyobj</Filter>
+    </ClInclude>
+    <ClInclude Include="Model.h">
+      <Filter>My Code</Filter>
+    </ClInclude>
+    <ClInclude Include="ConstantBuffer.h">
+      <Filter>My Code</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12HelloTriangle.h">
+      <Filter>Sample Code</Filter>
+    </ClInclude>
+    <ClInclude Include="d3dx12.h">
+      <Filter>Sample Code</Filter>
+    </ClInclude>
+    <ClInclude Include="DXSample.h">
+      <Filter>Sample Code</Filter>
+    </ClInclude>
+    <ClInclude Include="DXSampleHelper.h">
+      <Filter>Sample Code</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>Sample Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Win32Application.h">
+      <Filter>Sample Code</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureMgr.h">
+      <Filter>My Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Device.h">
+      <Filter>My Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Math.h">
+      <Filter>My Code</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Model.cpp">
+      <Filter>My Code</Filter>
+    </ClCompile>
+    <ClCompile Include="ConstantBuffer.cpp">
+      <Filter>My Code</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12HelloTriangle.cpp">
+      <Filter>Sample Code</Filter>
+    </ClCompile>
+    <ClCompile Include="DXSample.cpp">
+      <Filter>Sample Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Main.cpp">
+      <Filter>Sample Code</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Sample Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Win32Application.cpp">
+      <Filter>Sample Code</Filter>
+    </ClCompile>
+    <ClCompile Include="TextureMgr.cpp">
+      <Filter>My Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Device.cpp">
+      <Filter>My Code</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="TODO.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="assets\Shaders\Shaders.h">
+      <Filter>Assets\Shaders</Filter>
+    </None>
+    <None Include="assets\Shaders\skybox.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </None>
+    <None Include="assets\Shaders\shaders.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </None>
+    <None Include="assets\Shaders\PBR.h">
+      <Filter>Assets\Shaders</Filter>
+    </None>
+    <None Include="packages.config" />
+    <None Include="assets\Shaders\ssao.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </None>
+  </ItemGroup>
+</Project>

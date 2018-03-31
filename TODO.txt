@@ -1,0 +1,6 @@
+
+Just need to make a simple concise dx12 base.  
+
+From there can start coding dx12 demos and things
+
+dont need all of stb, could just get the headers you want
