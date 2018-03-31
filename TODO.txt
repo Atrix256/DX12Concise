@@ -8,3 +8,9 @@ dont need all of stb, could just get the headers you want
 ? why does there need to be per frame resources here, but not in prism?
 
 ? get rid of d3dx12.h?
+? get rid of Win32Application.h / .cpp?
+? get rid of pch?
+
+* there is a com memory error on startup
+
+* a thing to binary compile assets?

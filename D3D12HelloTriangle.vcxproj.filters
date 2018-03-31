@@ -16,6 +16,9 @@
     <Filter Include="Sample Code">
       <UniqueIdentifier>{d0457f7a-e952-40e6-b09b-f66b3ca641ed}</UniqueIdentifier>
     </Filter>
+    <Filter Include="New Code">
+      <UniqueIdentifier>{ec96c62e-d25d-454f-856a-27feee533b70}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tinyobj\tiny_obj_loader.h">
@@ -54,6 +57,9 @@
     <ClInclude Include="Math.h">
       <Filter>My Code</Filter>
     </ClInclude>
+    <ClInclude Include="dx12.h">
+      <Filter>New Code</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Model.cpp">
@@ -82,6 +88,9 @@
     </ClCompile>
     <ClCompile Include="Device.cpp">
       <Filter>My Code</Filter>
+    </ClCompile>
+    <ClCompile Include="dx12.cpp">
+      <Filter>New Code</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

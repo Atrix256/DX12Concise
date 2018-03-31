@@ -199,6 +199,9 @@ void TextureMgr::Destroy()
 
 TextureID TextureMgr::LoadTexture (ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const char* fileName, bool isLinear, bool makeMips)
 {
+    // TODO: temp?
+    makeMips = false;
+
     // if we already have this file loaded, re-use it
     TextureMgr& mgr = Get();
     auto it = mgr.m_texturesLoaded.find(fileName);

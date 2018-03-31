@@ -126,6 +126,7 @@
     </None>
     <ClInclude Include="ConstantBuffer.h" />
     <ClInclude Include="Device.h" />
+    <ClInclude Include="dx12.h" />
     <ClInclude Include="Math.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="TextureMgr.h" />
@@ -141,6 +142,7 @@
   <ItemGroup>
     <ClCompile Include="ConstantBuffer.cpp" />
     <ClCompile Include="Device.cpp" />
+    <ClCompile Include="dx12.cpp" />
     <ClCompile Include="Model.cpp" />
     <ClCompile Include="TextureMgr.cpp" />
     <ClCompile Include="Win32Application.cpp" />

@@ -11,6 +11,9 @@
 
 #include "stdafx.h"
 #include "D3D12HelloTriangle.h"
+
+#include "dx12.h"
+
 #include "Model.h"
 #include "Math.h"
 #include <fstream>
@@ -255,62 +258,9 @@ void D3D12HelloTriangle::OnInit()
 // Load the rendering pipeline dependencies.
 void D3D12HelloTriangle::LoadPipeline()
 {
-	UINT dxgiFactoryFlags = 0;
-
-#if defined(_DEBUG)
-    bool enableDebugLayer = true;
-#else
-    bool enableDebugLayer = m_GPUDebug;
-#endif
-
-	// Enable the debug layer (requires the Graphics Tools "optional feature").
-	// NOTE: Enabling the debug layer after device creation will invalidate the active device.
-    if (enableDebugLayer)
-	{
-		ComPtr<ID3D12Debug> debugController;
-		if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
-		{
-			debugController->EnableDebugLayer();
-
-			// Enable additional debug layers.
-			dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
-		}
-	}
-
-	ComPtr<IDXGIFactory4> factory;
-	ThrowIfFailed(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory)));
-
-    if (m_GPUDebug)
-    {
-        ComPtr<ID3D12Debug> spDebugController0;
-        ComPtr<ID3D12Debug1> spDebugController1;
-        ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&spDebugController0)));
-        ThrowIfFailed(spDebugController0->QueryInterface(IID_PPV_ARGS(&spDebugController1)));
-        spDebugController1->SetEnableGPUBasedValidation(true);
-    }
-
-	if (m_useWarpDevice)
-	{
-		ComPtr<IDXGIAdapter> warpAdapter;
-		ThrowIfFailed(factory->EnumWarpAdapter(IID_PPV_ARGS(&warpAdapter)));
-
-		ThrowIfFailed(D3D12CreateDevice(
-			warpAdapter.Get(),
-			D3D_FEATURE_LEVEL_11_0,
-			IID_PPV_ARGS(&m_device)
-			));
-	}
-	else
-	{
-		ComPtr<IDXGIAdapter1> hardwareAdapter;
-		GetHardwareAdapter(factory.Get(), &hardwareAdapter);
-
-		ThrowIfFailed(D3D12CreateDevice(
-			hardwareAdapter.Get(),
-			D3D_FEATURE_LEVEL_11_0,
-			IID_PPV_ARGS(&m_device)
-			));
-	}
+    // make the dx12 device
+    IDXGIFactory4* factory;
+    m_device = DX12::CreateDevice(m_GPUDebug, false, &factory);
 
 	// Describe and create the command queue.
 	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
@@ -341,6 +291,8 @@ void D3D12HelloTriangle::LoadPipeline()
 
 	// This sample does not support fullscreen transitions.
 	ThrowIfFailed(factory->MakeWindowAssociation(Win32Application::GetHwnd(), DXGI_MWA_NO_ALT_ENTER));
+
+    factory->Release();
 
 	ThrowIfFailed(swapChain.As(&m_swapChain));
 	m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
@@ -422,7 +374,7 @@ void D3D12HelloTriangle::LoadPipeline()
 
 void D3D12HelloTriangle::LoadTextures()
 {
-    m_splitSum = TextureMgr::LoadTexture(m_device.Get(), m_commandList.Get(), "assets/splitsum.png", true, false);
+    m_splitSum = TextureMgr::LoadTexture(m_device, m_commandList.Get(), "assets/splitsum.png", true, false);
 
     // load the material textures
     size_t fileNameIndex = 0;
@@ -436,11 +388,11 @@ void D3D12HelloTriangle::LoadTextures()
             {
                 char fileName[1024];
                 sprintf_s(fileName, "assets/PBRMaterialTextures/%s", s_materialFileNames[fileNameIndex]);
-                texture = TextureMgr::LoadTexture(m_device.Get(), m_commandList.Get(), fileName, s_materialTextureLinear[textureIndex], true);
+                texture = TextureMgr::LoadTexture(m_device, m_commandList.Get(), fileName, s_materialTextureLinear[textureIndex], true);
             }
             else
             {
-                texture = TextureMgr::LoadTexture(m_device.Get(), m_commandList.Get(), "Assets/white.png", true, false);
+                texture = TextureMgr::LoadTexture(m_device, m_commandList.Get(), "Assets/white.png", true, false);
             }
 
             m_materials[materialIndex][textureIndex] = texture;
@@ -553,7 +505,7 @@ void D3D12HelloTriangle::MakeProceduralMeshes()
             v.position.y += 0.5f;
         }
 
-        ModelCreate(m_device.Get(), m_commandList.Get(), m_models[(size_t)EModel::Sphere], false, sphereVertices, "Sphere");
+        ModelCreate(m_device, m_commandList.Get(), m_models[(size_t)EModel::Sphere], false, sphereVertices, "Sphere");
     }
 
     for (size_t i = 0; i < (size_t)EModel::Count; ++i)
@@ -563,7 +515,7 @@ void D3D12HelloTriangle::MakeProceduralMeshes()
             continue;
         }
 
-        if (!ModelLoad(m_device.Get(), m_commandList.Get(), m_models[i], s_modelsToLoad[i].fileName, s_modelsToLoad[i].baseDir, s_modelsToLoad[i].scale, s_modelsToLoad[i].offset, s_modelsToLoad[i].flipV))
+        if (!ModelLoad(m_device, m_commandList.Get(), m_models[i], s_modelsToLoad[i].fileName, s_modelsToLoad[i].baseDir, s_modelsToLoad[i].scale, s_modelsToLoad[i].offset, s_modelsToLoad[i].flipV))
         {
             throw std::exception();
         }
@@ -575,9 +527,9 @@ void D3D12HelloTriangle::LoadSkyboxes()
     // load the skyboxes
     for (size_t i = 0; i < (size_t)ESkyBox::Count; ++i)
     {
-        m_skyboxes[i].m_tex = TextureMgr::LoadCubeMap(m_device.Get(), m_commandList.Get(), s_skyboxBaseFileName[i], false);
-        m_skyboxes[i].m_texDiffuse = TextureMgr::LoadCubeMap(m_device.Get(), m_commandList.Get(), s_skyboxBaseFileNameDiffuse[i], false);
-        m_skyboxes[i].m_texSpecular = TextureMgr::LoadCubeMapMips(m_device.Get(), m_commandList.Get(), s_skyboxBaseFileNameSpecular[i], 5, false);
+        m_skyboxes[i].m_tex = TextureMgr::LoadCubeMap(m_device, m_commandList.Get(), s_skyboxBaseFileName[i], false);
+        m_skyboxes[i].m_texDiffuse = TextureMgr::LoadCubeMap(m_device, m_commandList.Get(), s_skyboxBaseFileNameDiffuse[i], false);
+        m_skyboxes[i].m_texSpecular = TextureMgr::LoadCubeMapMips(m_device, m_commandList.Get(), s_skyboxBaseFileNameSpecular[i], 5, false);
     }
 
     // Position, normal, tangent, uv
@@ -649,7 +601,7 @@ void D3D12HelloTriangle::LoadSkyboxes()
     };
 
     // make the skybox model
-    ModelCreate(m_device.Get(), m_commandList.Get(), m_skyboxModel, true, skyboxVertices, "Skybox");
+    ModelCreate(m_device, m_commandList.Get(), m_skyboxModel, true, skyboxVertices, "Skybox");
 }
 
 // Load the sample assets.
@@ -720,10 +672,10 @@ void D3D12HelloTriangle::LoadAssets()
 	// Create the command list.
 	ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_pipelineStateModels[0].Get(), IID_PPV_ARGS(&m_commandList)));
 
-    Device::Create(m_device.Get(), 100);
-    TextureMgr::Create(m_device.Get(), m_commandList.Get());
+    Device::Create(m_device, 100);
+    TextureMgr::Create(m_device, m_commandList.Get());
 
-    m_uav = TextureMgr::CreateUAVTexture(m_device.Get(), m_commandList.Get(), m_width, m_height);
+    m_uav = TextureMgr::CreateUAVTexture(m_device, m_commandList.Get(), m_width, m_height);
 
 	// Create a texture samplers
 	{
@@ -754,7 +706,7 @@ void D3D12HelloTriangle::LoadAssets()
     ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
     m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
-    m_constantBuffer.Init(m_device.Get());
+    m_constantBuffer.Init(m_device);
     m_constantBuffer.Write(
         [this] (SConstantBuffer& constantBuffer)
         {
@@ -923,6 +875,9 @@ void D3D12HelloTriangle::OnDestroy()
 	// Ensure that the GPU is no longer referencing resources that are about to be
 	// cleaned up by the destructor.
 	WaitForPreviousFrame();
+
+    m_device->Release();
+    m_device = nullptr;
 
     TextureMgr::Destroy();
     Device::Destroy();
