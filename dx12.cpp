@@ -30,85 +30,115 @@ static void GetHardwareAdapter(IDXGIFactory2* pFactory, IDXGIAdapter1** ppAdapte
     *ppAdapter = adapter;
 }
 
-
-namespace DX12
+bool GraphicsAPIDX12::Create(bool gpuDebug, bool useWarpDevice, unsigned int frameCount, unsigned int width, unsigned int height, HWND hWnd)
 {
-    ID3D12Device* CreateDevice(bool gpuDebug, bool useWarpDevice, IDXGIFactory4** outFactory)
-    {
-        ID3D12Device* device = nullptr;
-
-        UINT dxgiFactoryFlags = 0;
+    UINT dxgiFactoryFlags = 0;
 
 #if defined(_DEBUG)
-        bool enableDebugLayer = true;
+    bool enableDebugLayer = true;
 #else
-        bool enableDebugLayer = gpuDebug;
+    bool enableDebugLayer = gpuDebug;
 #endif
 
-        // Enable the debug layer (requires the Graphics Tools "optional feature").
-        // NOTE: Enabling the debug layer after device creation will invalidate the active device.
-        if (enableDebugLayer)
+    // Enable the debug layer (requires the Graphics Tools "optional feature").
+    // NOTE: Enabling the debug layer after device creation will invalidate the active device.
+    if (enableDebugLayer)
+    {
+        ID3D12Debug* debugController;
+        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
         {
-            ID3D12Debug* debugController;
-            if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
-            {
-                debugController->EnableDebugLayer();
+            debugController->EnableDebugLayer();
 
-                // Enable additional debug layers.
-                dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
-            }
-            debugController->Release();
+            // Enable additional debug layers.
+            dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
         }
-
-        IDXGIFactory4* factory;
-        if (FAILED(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory))))
-            return nullptr;
-
-        if (gpuDebug)
-        {
-            ID3D12Debug* spDebugController0;
-            ID3D12Debug1* spDebugController1;
-            if (FAILED(D3D12GetDebugInterface(IID_PPV_ARGS(&spDebugController0))))
-                return nullptr;
-            if (FAILED(spDebugController0->QueryInterface(IID_PPV_ARGS(&spDebugController1))))
-                return nullptr;
-            spDebugController1->SetEnableGPUBasedValidation(true);
-            spDebugController0->Release();
-            spDebugController1->Release();
-        }
-
-        if (useWarpDevice)
-        {
-            IDXGIAdapter* warpAdapter;
-            if (FAILED(factory->EnumWarpAdapter(IID_PPV_ARGS(&warpAdapter))))
-                return nullptr;
-
-            if (FAILED(D3D12CreateDevice(
-                warpAdapter,
-                D3D_FEATURE_LEVEL_11_0,
-                IID_PPV_ARGS(&device)
-            )))
-                return nullptr;
-
-            warpAdapter->Release();
-        }
-        else
-        {
-            IDXGIAdapter1* hardwareAdapter;
-            GetHardwareAdapter(factory, &hardwareAdapter);
-
-            if (FAILED(D3D12CreateDevice(
-                hardwareAdapter,
-                D3D_FEATURE_LEVEL_11_0,
-                IID_PPV_ARGS(&device)
-            )))
-                return nullptr;
-
-            hardwareAdapter->Release();
-        }
-
-        *outFactory = factory;
-
-        return device;
+        debugController->Release();
     }
-};
+
+    IDXGIFactory4* factory;
+    if (FAILED(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory))))
+        return false;
+
+    if (gpuDebug)
+    {
+        ID3D12Debug* spDebugController0;
+        ID3D12Debug1* spDebugController1;
+        if (FAILED(D3D12GetDebugInterface(IID_PPV_ARGS(&spDebugController0))))
+            return false;
+        if (FAILED(spDebugController0->QueryInterface(IID_PPV_ARGS(&spDebugController1))))
+            return false;
+        spDebugController1->SetEnableGPUBasedValidation(true);
+        spDebugController0->Release();
+        spDebugController1->Release();
+    }
+
+    if (useWarpDevice)
+    {
+        IDXGIAdapter* warpAdapter;
+        if (FAILED(factory->EnumWarpAdapter(IID_PPV_ARGS(&warpAdapter))))
+            return false;
+
+        if (FAILED(D3D12CreateDevice(
+            warpAdapter,
+            D3D_FEATURE_LEVEL_11_0,
+            IID_PPV_ARGS(&m_device)
+        )))
+            return false;
+
+        warpAdapter->Release();
+    }
+    else
+    {
+        IDXGIAdapter1* hardwareAdapter;
+        GetHardwareAdapter(factory, &hardwareAdapter);
+
+        if (FAILED(D3D12CreateDevice(
+            hardwareAdapter,
+            D3D_FEATURE_LEVEL_11_0,
+            IID_PPV_ARGS(&m_device)
+        )))
+            return false;
+
+        hardwareAdapter->Release();
+    }
+
+    // Describe and create the command queue.
+    D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+    queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+    queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+
+    if (FAILED(m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue))))
+        return false;
+
+    // Describe and create the swap chain.
+    DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+    swapChainDesc.BufferCount = frameCount;
+    swapChainDesc.Width = width;
+    swapChainDesc.Height = height;
+    swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+    swapChainDesc.SampleDesc.Count = 1;
+
+    IDXGISwapChain1* swapChain;
+    if (FAILED(factory->CreateSwapChainForHwnd(
+        m_commandQueue,		// Swap chain needs the queue so that it can force a flush on it.
+        hWnd,
+        &swapChainDesc,
+        nullptr,
+        nullptr,
+        &swapChain
+    )))
+        return false;
+    
+    if (FAILED(factory->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER)))
+        return false;
+
+    if (FAILED(swapChain->QueryInterface(IID_PPV_ARGS(&m_swapChain))))
+        return false;
+
+    factory->Release();
+    swapChain->Release();
+
+    return true;
+}

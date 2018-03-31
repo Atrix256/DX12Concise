@@ -13,4 +13,6 @@ dont need all of stb, could just get the headers you want
 
 * there is a com memory error on startup
 
+* pass swapchain format as parameter to dx12 init
+
 * a thing to binary compile assets?

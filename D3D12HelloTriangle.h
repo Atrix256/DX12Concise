@@ -20,6 +20,7 @@
 #include <array>
 #include "TextureMgr.h"
 #include "Math.h"
+#include "dx12.h"
 
 using namespace DirectX;
 
@@ -151,13 +152,10 @@ private:
 	// Pipeline objects.
 	CD3DX12_VIEWPORT m_viewport;
 	CD3DX12_RECT m_scissorRect;
-	ComPtr<IDXGISwapChain3> m_swapChain;
-	ID3D12Device* m_device;
 	ComPtr<ID3D12Resource> m_renderTargetsColor[FrameCount];
     ComPtr<ID3D12Resource> m_renderTargetsNormalDepth[FrameCount];
     ComPtr<ID3D12Resource> m_depthStencil;
 	ComPtr<ID3D12CommandAllocator> m_commandAllocator;
-	ComPtr<ID3D12CommandQueue> m_commandQueue;
 	ComPtr<ID3D12RootSignature> m_rootSignature;
 	ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
     ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
@@ -166,6 +164,8 @@ private:
     ComPtr<ID3D12PipelineState> m_pipelineStateSkybox[SShaderPermutations::Count];
 	ComPtr<ID3D12GraphicsCommandList> m_commandList;
 	UINT m_rtvDescriptorSize;
+
+    GraphicsAPIDX12 m_graphicsAPI;
 
 	// App resources.
     SModel m_skyboxModel;

@@ -12,8 +12,6 @@
 #include "stdafx.h"
 #include "D3D12HelloTriangle.h"
 
-#include "dx12.h"
-
 #include "Model.h"
 #include "Math.h"
 #include <fstream>
@@ -198,7 +196,7 @@ void D3D12HelloTriangle::MakePSOs()
             }
         }
 
-        ThrowIfFailed(m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineStateModels[i])));        
+        ThrowIfFailed(m_graphicsAPI.m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineStateModels[i])));        
     }
 
 	// create the skybox shader
@@ -235,7 +233,7 @@ void D3D12HelloTriangle::MakePSOs()
         // Because of that, we don't limit the color channels written in any shaders for the skybox
         //psoDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
-		ThrowIfFailed(m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineStateSkybox[i])));
+		ThrowIfFailed(m_graphicsAPI.m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineStateSkybox[i])));
 	}
 }
 
@@ -258,44 +256,9 @@ void D3D12HelloTriangle::OnInit()
 // Load the rendering pipeline dependencies.
 void D3D12HelloTriangle::LoadPipeline()
 {
-    // make the dx12 device
-    IDXGIFactory4* factory;
-    m_device = DX12::CreateDevice(m_GPUDebug, false, &factory);
+    m_graphicsAPI.Create(m_GPUDebug, false, FrameCount, m_width, m_height, Win32Application::GetHwnd());
 
-	// Describe and create the command queue.
-	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
-	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-
-	ThrowIfFailed(m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue)));
-
-	// Describe and create the swap chain.
-	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-	swapChainDesc.BufferCount = FrameCount;
-	swapChainDesc.Width = m_width;
-	swapChainDesc.Height = m_height;
-	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-	swapChainDesc.SampleDesc.Count = 1;
-
-	ComPtr<IDXGISwapChain1> swapChain;
-	ThrowIfFailed(factory->CreateSwapChainForHwnd(
-		m_commandQueue.Get(),		// Swap chain needs the queue so that it can force a flush on it.
-		Win32Application::GetHwnd(),
-		&swapChainDesc,
-		nullptr,
-		nullptr,
-		&swapChain
-		));
-
-	// This sample does not support fullscreen transitions.
-	ThrowIfFailed(factory->MakeWindowAssociation(Win32Application::GetHwnd(), DXGI_MWA_NO_ALT_ENTER));
-
-    factory->Release();
-
-	ThrowIfFailed(swapChain.As(&m_swapChain));
-	m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+	m_frameIndex = m_graphicsAPI.m_swapChain->GetCurrentBackBufferIndex();
 
 	// Create descriptor heaps.
 	{
@@ -304,23 +267,23 @@ void D3D12HelloTriangle::LoadPipeline()
 		rtvHeapDesc.NumDescriptors = FrameCount*2;
 		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 		rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-		ThrowIfFailed(m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap)));
+		ThrowIfFailed(m_graphicsAPI.m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap)));
 
-        m_rtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+        m_rtvDescriptorSize = m_graphicsAPI.m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
         // Describe and create a depth stencil view (DSV) descriptor heap.
         D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
         dsvHeapDesc.NumDescriptors = 1;
         dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
         dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-        ThrowIfFailed(m_device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_dsvHeap)));
+        ThrowIfFailed(m_graphicsAPI.m_device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_dsvHeap)));
 
         // Describe and create a sampler descriptor heap.
         D3D12_DESCRIPTOR_HEAP_DESC samplerHeapDesc = {};
         samplerHeapDesc.NumDescriptors = 1;
         samplerHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
         samplerHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-        ThrowIfFailed(m_device->CreateDescriptorHeap(&samplerHeapDesc, IID_PPV_ARGS(&m_samplerHeap)));
+        ThrowIfFailed(m_graphicsAPI.m_device->CreateDescriptorHeap(&samplerHeapDesc, IID_PPV_ARGS(&m_samplerHeap)));
 	}
 
 	// Create frame resources.
@@ -335,8 +298,8 @@ void D3D12HelloTriangle::LoadPipeline()
 		// Create a RTV for each frame.
 		for (UINT n = 0; n < FrameCount; n++)
 		{
-			ThrowIfFailed(m_swapChain->GetBuffer(n, IID_PPV_ARGS(&m_renderTargetsColor[n])));
-			m_device->CreateRenderTargetView(m_renderTargetsColor[n].Get(), &rtvDesc, rtvHandle);
+			ThrowIfFailed(m_graphicsAPI.m_swapChain->GetBuffer(n, IID_PPV_ARGS(&m_renderTargetsColor[n])));
+            m_graphicsAPI.m_device->CreateRenderTargetView(m_renderTargetsColor[n].Get(), &rtvDesc, rtvHandle);
 			rtvHandle.Offset(1, m_rtvDescriptorSize);
 		}
 
@@ -355,7 +318,7 @@ void D3D12HelloTriangle::LoadPipeline()
         depthOptimizedClearValue.DepthStencil.Depth = 1.0f;
         depthOptimizedClearValue.DepthStencil.Stencil = 0;
 
-        ThrowIfFailed(m_device->CreateCommittedResource(
+        ThrowIfFailed(m_graphicsAPI.m_device->CreateCommittedResource(
             &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
             D3D12_HEAP_FLAG_NONE,
             &CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, m_width, m_height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL),
@@ -366,15 +329,15 @@ void D3D12HelloTriangle::LoadPipeline()
 
         NAME_D3D12_OBJECT(m_depthStencil);
 
-        m_device->CreateDepthStencilView(m_depthStencil.Get(), &depthStencilDesc, m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
+        m_graphicsAPI.m_device->CreateDepthStencilView(m_depthStencil.Get(), &depthStencilDesc, m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
     }
 
-	ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator)));
+	ThrowIfFailed(m_graphicsAPI.m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator)));
 }
 
 void D3D12HelloTriangle::LoadTextures()
 {
-    m_splitSum = TextureMgr::LoadTexture(m_device, m_commandList.Get(), "assets/splitsum.png", true, false);
+    m_splitSum = TextureMgr::LoadTexture(m_graphicsAPI.m_device, m_commandList.Get(), "assets/splitsum.png", true, false);
 
     // load the material textures
     size_t fileNameIndex = 0;
@@ -388,11 +351,11 @@ void D3D12HelloTriangle::LoadTextures()
             {
                 char fileName[1024];
                 sprintf_s(fileName, "assets/PBRMaterialTextures/%s", s_materialFileNames[fileNameIndex]);
-                texture = TextureMgr::LoadTexture(m_device, m_commandList.Get(), fileName, s_materialTextureLinear[textureIndex], true);
+                texture = TextureMgr::LoadTexture(m_graphicsAPI.m_device, m_commandList.Get(), fileName, s_materialTextureLinear[textureIndex], true);
             }
             else
             {
-                texture = TextureMgr::LoadTexture(m_device, m_commandList.Get(), "Assets/white.png", true, false);
+                texture = TextureMgr::LoadTexture(m_graphicsAPI.m_device, m_commandList.Get(), "Assets/white.png", true, false);
             }
 
             m_materials[materialIndex][textureIndex] = texture;
@@ -505,7 +468,7 @@ void D3D12HelloTriangle::MakeProceduralMeshes()
             v.position.y += 0.5f;
         }
 
-        ModelCreate(m_device, m_commandList.Get(), m_models[(size_t)EModel::Sphere], false, sphereVertices, "Sphere");
+        ModelCreate(m_graphicsAPI.m_device, m_commandList.Get(), m_models[(size_t)EModel::Sphere], false, sphereVertices, "Sphere");
     }
 
     for (size_t i = 0; i < (size_t)EModel::Count; ++i)
@@ -515,7 +478,7 @@ void D3D12HelloTriangle::MakeProceduralMeshes()
             continue;
         }
 
-        if (!ModelLoad(m_device, m_commandList.Get(), m_models[i], s_modelsToLoad[i].fileName, s_modelsToLoad[i].baseDir, s_modelsToLoad[i].scale, s_modelsToLoad[i].offset, s_modelsToLoad[i].flipV))
+        if (!ModelLoad(m_graphicsAPI.m_device, m_commandList.Get(), m_models[i], s_modelsToLoad[i].fileName, s_modelsToLoad[i].baseDir, s_modelsToLoad[i].scale, s_modelsToLoad[i].offset, s_modelsToLoad[i].flipV))
         {
             throw std::exception();
         }
@@ -527,9 +490,9 @@ void D3D12HelloTriangle::LoadSkyboxes()
     // load the skyboxes
     for (size_t i = 0; i < (size_t)ESkyBox::Count; ++i)
     {
-        m_skyboxes[i].m_tex = TextureMgr::LoadCubeMap(m_device, m_commandList.Get(), s_skyboxBaseFileName[i], false);
-        m_skyboxes[i].m_texDiffuse = TextureMgr::LoadCubeMap(m_device, m_commandList.Get(), s_skyboxBaseFileNameDiffuse[i], false);
-        m_skyboxes[i].m_texSpecular = TextureMgr::LoadCubeMapMips(m_device, m_commandList.Get(), s_skyboxBaseFileNameSpecular[i], 5, false);
+        m_skyboxes[i].m_tex = TextureMgr::LoadCubeMap(m_graphicsAPI.m_device, m_commandList.Get(), s_skyboxBaseFileName[i], false);
+        m_skyboxes[i].m_texDiffuse = TextureMgr::LoadCubeMap(m_graphicsAPI.m_device, m_commandList.Get(), s_skyboxBaseFileNameDiffuse[i], false);
+        m_skyboxes[i].m_texSpecular = TextureMgr::LoadCubeMapMips(m_graphicsAPI.m_device, m_commandList.Get(), s_skyboxBaseFileNameSpecular[i], 5, false);
     }
 
     // Position, normal, tangent, uv
@@ -601,7 +564,7 @@ void D3D12HelloTriangle::LoadSkyboxes()
     };
 
     // make the skybox model
-    ModelCreate(m_device, m_commandList.Get(), m_skyboxModel, true, skyboxVertices, "Skybox");
+    ModelCreate(m_graphicsAPI.m_device, m_commandList.Get(), m_skyboxModel, true, skyboxVertices, "Skybox");
 }
 
 // Load the sample assets.
@@ -614,7 +577,7 @@ void D3D12HelloTriangle::LoadAssets()
 		// This is the highest version the sample supports. If CheckFeatureSupport succeeds, the HighestVersion returned will not be greater than this.
 		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
 
-		if (FAILED(m_device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
+		if (FAILED(m_graphicsAPI.m_device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
 		{
 			featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
 		}
@@ -664,18 +627,18 @@ void D3D12HelloTriangle::LoadAssets()
 		ComPtr<ID3DBlob> signature;
 		ComPtr<ID3DBlob> error;
 		ThrowIfFailed(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error));
-		ThrowIfFailed(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)));
+		ThrowIfFailed(m_graphicsAPI.m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)));
 	}
 
     MakePSOs();
 
 	// Create the command list.
-	ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_pipelineStateModels[0].Get(), IID_PPV_ARGS(&m_commandList)));
+	ThrowIfFailed(m_graphicsAPI.m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_pipelineStateModels[0].Get(), IID_PPV_ARGS(&m_commandList)));
 
-    Device::Create(m_device, 100);
-    TextureMgr::Create(m_device, m_commandList.Get());
+    Device::Create(m_graphicsAPI.m_device, 100);
+    TextureMgr::Create(m_graphicsAPI.m_device, m_commandList.Get());
 
-    m_uav = TextureMgr::CreateUAVTexture(m_device, m_commandList.Get(), m_width, m_height);
+    m_uav = TextureMgr::CreateUAVTexture(m_graphicsAPI.m_device, m_commandList.Get(), m_width, m_height);
 
 	// Create a texture samplers
 	{
@@ -689,7 +652,7 @@ void D3D12HelloTriangle::LoadAssets()
         sampler.MipLODBias = 0;
         sampler.MaxAnisotropy = 0;
         sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-        m_device->CreateSampler(&sampler, m_samplerHeap->GetCPUDescriptorHandleForHeapStart());
+        m_graphicsAPI.m_device->CreateSampler(&sampler, m_samplerHeap->GetCPUDescriptorHandleForHeapStart());
 	}
 
     // load the basic textures
@@ -704,9 +667,9 @@ void D3D12HelloTriangle::LoadAssets()
     // Close the command list and execute it to begin the initial GPU setup.
     ThrowIfFailed(m_commandList->Close());
     ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
-    m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+    m_graphicsAPI.m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
-    m_constantBuffer.Init(m_device);
+    m_constantBuffer.Init(m_graphicsAPI.m_device);
     m_constantBuffer.Write(
         [this] (SConstantBuffer& constantBuffer)
         {
@@ -732,7 +695,7 @@ void D3D12HelloTriangle::LoadAssets()
 
 	// Create synchronization objects and wait until assets have been uploaded to the GPU.
 	{
-		ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
+		ThrowIfFailed(m_graphicsAPI.m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
 		m_fenceValue = 1;
 
 		// Create an event handle to use for frame synchronization.
@@ -859,13 +822,13 @@ void D3D12HelloTriangle::OnRender()
 
 	// Execute the command list.
 	ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
-	m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+    m_graphicsAPI.m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 	// Present the frame.
     if (m_vsync)
-	    ThrowIfFailed(m_swapChain->Present(1, 0));
+	    ThrowIfFailed(m_graphicsAPI.m_swapChain->Present(1, 0));
     else
-        ThrowIfFailed(m_swapChain->Present(0, 0));
+        ThrowIfFailed(m_graphicsAPI.m_swapChain->Present(0, 0));
 
 	WaitForPreviousFrame();
 }
@@ -876,8 +839,7 @@ void D3D12HelloTriangle::OnDestroy()
 	// cleaned up by the destructor.
 	WaitForPreviousFrame();
 
-    m_device->Release();
-    m_device = nullptr;
+    m_graphicsAPI.m_device->Release();
 
     TextureMgr::Destroy();
     Device::Destroy();
@@ -1095,7 +1057,7 @@ void D3D12HelloTriangle::WaitForPreviousFrame()
 
 	// Signal and increment the fence value.
 	const UINT64 fence = m_fenceValue;
-	ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), fence));
+	ThrowIfFailed(m_graphicsAPI.m_commandQueue->Signal(m_fence.Get(), fence));
 	m_fenceValue++;
 
 	// Wait until the previous frame is finished.
@@ -1105,7 +1067,7 @@ void D3D12HelloTriangle::WaitForPreviousFrame()
 		WaitForSingleObject(m_fenceEvent, INFINITE);
 	}
 
-	m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+	m_frameIndex = m_graphicsAPI.m_swapChain->GetCurrentBackBufferIndex();
 }
 
 void D3D12HelloTriangle::OnKeyDown(UINT8 key)
