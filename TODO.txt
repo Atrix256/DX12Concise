@@ -11,8 +11,8 @@ dont need all of stb, could just get the headers you want
 ? get rid of Win32Application.h / .cpp?
 ? get rid of pch?
 
-* there is a com memory error on startup
-
 * pass swapchain format as parameter to dx12 init
 
-* a thing to binary compile assets?
+* gut everything, simple 2d shape with ndotl lighting or something
+
+* rename project

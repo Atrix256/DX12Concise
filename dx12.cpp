@@ -32,6 +32,8 @@ static void GetHardwareAdapter(IDXGIFactory2* pFactory, IDXGIAdapter1** ppAdapte
 
 bool GraphicsAPIDX12::Create(bool gpuDebug, bool useWarpDevice, unsigned int frameCount, unsigned int width, unsigned int height, HWND hWnd)
 {
+
+    // ==================== Create factory ====================
     UINT dxgiFactoryFlags = 0;
 
 #if defined(_DEBUG)
@@ -58,6 +60,8 @@ bool GraphicsAPIDX12::Create(bool gpuDebug, bool useWarpDevice, unsigned int fra
     IDXGIFactory4* factory;
     if (FAILED(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory))))
         return false;
+
+    // ==================== Create Device ====================
 
     if (gpuDebug)
     {
@@ -102,6 +106,8 @@ bool GraphicsAPIDX12::Create(bool gpuDebug, bool useWarpDevice, unsigned int fra
         hardwareAdapter->Release();
     }
 
+    // ==================== Create Command Queue ====================
+
     // Describe and create the command queue.
     D3D12_COMMAND_QUEUE_DESC queueDesc = {};
     queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -109,6 +115,8 @@ bool GraphicsAPIDX12::Create(bool gpuDebug, bool useWarpDevice, unsigned int fra
 
     if (FAILED(m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue))))
         return false;
+
+    // ==================== Create Swap Chain ====================
 
     // Describe and create the swap chain.
     DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
@@ -137,8 +145,42 @@ bool GraphicsAPIDX12::Create(bool gpuDebug, bool useWarpDevice, unsigned int fra
     if (FAILED(swapChain->QueryInterface(IID_PPV_ARGS(&m_swapChain))))
         return false;
 
-    factory->Release();
     swapChain->Release();
+    factory->Release();
+
+    // ==================== Create Heaps ====================
+
+    D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
+    rtvHeapDesc.NumDescriptors = c_maxRTVDescriptors;
+    rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+    rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+    if (FAILED(m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap))))
+        return false;
+
+    // Describe and create a depth stencil view (DSV) descriptor heap.
+    D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+    dsvHeapDesc.NumDescriptors = c_maxDSVDescriptors;
+    dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+    dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+    if (FAILED(m_device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_dsvHeap))))
+        return false;
+
+    // Describe and create a sampler descriptor heap.
+    D3D12_DESCRIPTOR_HEAP_DESC samplerHeapDesc = {};
+    samplerHeapDesc.NumDescriptors = c_maxSamplerDescriptors;
+    samplerHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+    samplerHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    if (FAILED(m_device->CreateDescriptorHeap(&samplerHeapDesc, IID_PPV_ARGS(&m_samplerHeap))))
+        return false;
+
+    m_rtvHeapDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    m_dsvHeapDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+    m_samplerHeapDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+    // ==================== Clean Up ====================
+
+
+
 
     return true;
 }

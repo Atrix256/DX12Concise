@@ -157,13 +157,9 @@ private:
     ComPtr<ID3D12Resource> m_depthStencil;
 	ComPtr<ID3D12CommandAllocator> m_commandAllocator;
 	ComPtr<ID3D12RootSignature> m_rootSignature;
-	ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
-    ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
-    ComPtr<ID3D12DescriptorHeap> m_samplerHeap;
 	ComPtr<ID3D12PipelineState> m_pipelineStateModels[SShaderPermutations::Count];
     ComPtr<ID3D12PipelineState> m_pipelineStateSkybox[SShaderPermutations::Count];
 	ComPtr<ID3D12GraphicsCommandList> m_commandList;
-	UINT m_rtvDescriptorSize;
 
     GraphicsAPIDX12 m_graphicsAPI;
 
