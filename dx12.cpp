@@ -177,10 +177,58 @@ bool GraphicsAPIDX12::Create(bool gpuDebug, bool useWarpDevice, unsigned int fra
     m_dsvHeapDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
     m_samplerHeapDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
-    // ==================== Clean Up ====================
+    // ==================== Create RTV Descriptors ====================
 
+	// Create frame resources.
+	{
+        m_renderTargetsColor.resize(frameCount);
 
+        // Setup RTV descriptor to specify sRGB format.
+        D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+        rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 
+		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
+
+		// Create a RTV for each frame.
+		for (UINT n = 0; n < frameCount; n++)
+		{
+            if (FAILED(m_swapChain->GetBuffer(n, IID_PPV_ARGS(&m_renderTargetsColor[n]))))
+                return false;
+            m_device->CreateRenderTargetView(m_renderTargetsColor[n], &rtvDesc, rtvHandle);
+			rtvHandle.Offset(1, m_rtvHeapDescriptorSize);
+		}
+	}
+
+    // Create the depth stencil view.
+    {
+        D3D12_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
+        depthStencilDesc.Format = DXGI_FORMAT_D32_FLOAT;
+        depthStencilDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+        depthStencilDesc.Flags = D3D12_DSV_FLAG_NONE;
+
+        D3D12_CLEAR_VALUE depthOptimizedClearValue = {};
+        depthOptimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
+        depthOptimizedClearValue.DepthStencil.Depth = 1.0f;
+        depthOptimizedClearValue.DepthStencil.Stencil = 0;
+
+        if (FAILED(m_device->CreateCommittedResource(
+            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+            D3D12_HEAP_FLAG_NONE,
+            &CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, width, height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL),
+            D3D12_RESOURCE_STATE_DEPTH_WRITE,
+            &depthOptimizedClearValue,
+            IID_PPV_ARGS(&m_depthStencil)
+        )))
+            return false;
+
+        m_device->CreateDepthStencilView(m_depthStencil, &depthStencilDesc, m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
+    }
+
+    // ==================== Create Command Allocator ====================
+
+    if (FAILED(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator))))
+        return false;
 
     return true;
 }

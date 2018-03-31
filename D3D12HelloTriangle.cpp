@@ -248,64 +248,10 @@ D3D12HelloTriangle::D3D12HelloTriangle(UINT width, UINT height, std::wstring nam
 
 void D3D12HelloTriangle::OnInit()
 {
-	LoadPipeline();
-	LoadAssets();
-}
-
-// Load the rendering pipeline dependencies.
-void D3D12HelloTriangle::LoadPipeline()
-{
     m_graphicsAPI.Create(m_GPUDebug, false, FrameCount, m_width, m_height, Win32Application::GetHwnd());
+    m_frameIndex = m_graphicsAPI.m_swapChain->GetCurrentBackBufferIndex();
 
-	m_frameIndex = m_graphicsAPI.m_swapChain->GetCurrentBackBufferIndex();
-
-	// Create frame resources.
-	{
-        // Setup RTV descriptor to specify sRGB format.
-        D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-        rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-        rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-
-		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_graphicsAPI.m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
-
-		// Create a RTV for each frame.
-		for (UINT n = 0; n < FrameCount; n++)
-		{
-			ThrowIfFailed(m_graphicsAPI.m_swapChain->GetBuffer(n, IID_PPV_ARGS(&m_renderTargetsColor[n])));
-            m_graphicsAPI.m_device->CreateRenderTargetView(m_renderTargetsColor[n].Get(), &rtvDesc, rtvHandle);
-			rtvHandle.Offset(1, m_graphicsAPI.m_rtvHeapDescriptorSize);
-		}
-
-        // create the normal / color RTV
-	}
-
-    // Create the depth stencil view.
-    {
-        D3D12_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
-        depthStencilDesc.Format = DXGI_FORMAT_D32_FLOAT;
-        depthStencilDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-        depthStencilDesc.Flags = D3D12_DSV_FLAG_NONE;
-
-        D3D12_CLEAR_VALUE depthOptimizedClearValue = {};
-        depthOptimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
-        depthOptimizedClearValue.DepthStencil.Depth = 1.0f;
-        depthOptimizedClearValue.DepthStencil.Stencil = 0;
-
-        ThrowIfFailed(m_graphicsAPI.m_device->CreateCommittedResource(
-            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-            D3D12_HEAP_FLAG_NONE,
-            &CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, m_width, m_height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL),
-            D3D12_RESOURCE_STATE_DEPTH_WRITE,
-            &depthOptimizedClearValue,
-            IID_PPV_ARGS(&m_depthStencil)
-        ));
-
-        NAME_D3D12_OBJECT(m_depthStencil);
-
-        m_graphicsAPI.m_device->CreateDepthStencilView(m_depthStencil.Get(), &depthStencilDesc, m_graphicsAPI.m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
-    }
-
-	ThrowIfFailed(m_graphicsAPI.m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator)));
+	LoadAssets();
 }
 
 void D3D12HelloTriangle::LoadTextures()
@@ -606,7 +552,7 @@ void D3D12HelloTriangle::LoadAssets()
     MakePSOs();
 
 	// Create the command list.
-	ThrowIfFailed(m_graphicsAPI.m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_pipelineStateModels[0].Get(), IID_PPV_ARGS(&m_commandList)));
+	ThrowIfFailed(m_graphicsAPI.m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_graphicsAPI.m_commandAllocator, m_pipelineStateModels[0].Get(), IID_PPV_ARGS(&m_commandList)));
 
     Device::Create(m_graphicsAPI.m_device, 100);
     TextureMgr::Create(m_graphicsAPI.m_device, m_commandList.Get());
@@ -837,12 +783,12 @@ void D3D12HelloTriangle::PopulateCommandList()
 	// Command list allocators can only be reset when the associated 
 	// command lists have finished execution on the GPU; apps should use 
 	// fences to determine GPU execution progress.
-	ThrowIfFailed(m_commandAllocator->Reset());
+	ThrowIfFailed(m_graphicsAPI.m_commandAllocator->Reset());
 
 	// However, when ExecuteCommandList() is called on a particular command 
 	// list, that command list can then be reset at any time and must be before 
 	// re-recording.
-	ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), m_pipelineStateModels[0].Get()));
+	ThrowIfFailed(m_commandList->Reset(m_graphicsAPI.m_commandAllocator, m_pipelineStateModels[0].Get()));
 
 	// Set necessary state.
 	m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
@@ -858,7 +804,7 @@ void D3D12HelloTriangle::PopulateCommandList()
 	m_commandList->RSSetScissorRects(1, &m_scissorRect);
 
 	// Indicate that the back buffer will be used as a render target.
-	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargetsColor[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_graphicsAPI.m_renderTargetsColor[m_frameIndex], D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_graphicsAPI.m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_graphicsAPI.m_rtvHeapDescriptorSize);
     CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(m_graphicsAPI.m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
@@ -1016,7 +962,7 @@ void D3D12HelloTriangle::PopulateCommandList()
     }
 
 	// Indicate that the back buffer will now be used to present.
-	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargetsColor[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_graphicsAPI.m_renderTargetsColor[m_frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
 	ThrowIfFailed(m_commandList->Close());
 }

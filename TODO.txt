@@ -12,7 +12,12 @@ dont need all of stb, could just get the headers you want
 ? get rid of pch?
 
 * pass swapchain format as parameter to dx12 init
+* also depth stencil format
 
 * gut everything, simple 2d shape with ndotl lighting or something
 
 * rename project
+
+* maybe yes, use self releasing pointers in dx12.h so return false etc handles things correctly.
+
+* make demo respect whether dx12 init succeeds or not

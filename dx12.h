@@ -1,5 +1,9 @@
 #pragma once
 
+// TODO: includes to dx12 stuff here
+
+#include <vector>
+
 class GraphicsAPIDX12
 {
 public:
@@ -7,6 +11,16 @@ public:
 
     void Destroy()
     {
+        m_commandAllocator->Release();
+        m_commandAllocator = nullptr;
+
+        for (ID3D12Resource* r : m_renderTargetsColor)
+            r->Release();
+        m_renderTargetsColor.clear();
+
+        m_depthStencil->Release();
+        m_depthStencil = nullptr;
+
         m_rtvHeap->Release();
         m_rtvHeap = nullptr;
 
@@ -29,6 +43,10 @@ public:
     ID3D12Device* m_device = nullptr;
     ID3D12CommandQueue* m_commandQueue = nullptr;
     IDXGISwapChain3* m_swapChain = nullptr;
+    ID3D12CommandAllocator* m_commandAllocator = nullptr;
+
+    std::vector<ID3D12Resource*> m_renderTargetsColor;
+    ID3D12Resource* m_depthStencil = nullptr;
 
     ID3D12DescriptorHeap* m_rtvHeap = nullptr;
     ID3D12DescriptorHeap* m_dsvHeap = nullptr;
