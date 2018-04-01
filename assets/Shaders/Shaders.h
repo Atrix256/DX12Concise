@@ -33,15 +33,15 @@ cbuffer ModelConstantBuffer : register(b1)
 SamplerState sampleWrap : register(s0);
 
 RWTexture2D<float4> g_uav : register(u1);
-
 Texture2D<float4> g_textureSplitSum : register(t0);
-
 Texture2D<float4> g_textureDiffuse : register(t1);
 
+// set as a descriptor table
 TextureCube<float4> g_textureSky : register(t2);
 TextureCube<float4> g_textureSkyDiffuse : register(t3);
 TextureCube<float4> g_textureSkySpecular : register(t4);
 
+// set as descriptor table
 Texture2D<float4> g_texturePBR_Albedo : register(t5);
 Texture2D<float4> g_texturePBR_Metalness : register(t6);
 Texture2D<float4> g_texturePBR_Normal : register(t7);

@@ -59,4 +59,5 @@ public:
     static const unsigned int c_maxRTVDescriptors = 50; // Render Target Views
     static const unsigned int c_maxDSVDescriptors = 50; // Depth Stencil Views
     static const unsigned int c_maxSamplerDescriptors = 10; // Texture Samplers
+    static const unsigned int c_maxSRVDescriptors = 200; // Shader Resource Views
 };

@@ -203,6 +203,7 @@ private:
     bool m_mouseLookMode = false;
 
     TextureID m_materials[(size_t)EMaterial::Count][(size_t)EMaterialTexture::Count];
+    HeapID_CBV_SRV_UAV m_materialDescriptorTableHeapID[(size_t)EMaterial::Count];   
 
     XMFLOAT3 m_cameraPos = { 0.0f, 1.0f, -5.0f };
     float m_cameraPitch = 0.0f;
