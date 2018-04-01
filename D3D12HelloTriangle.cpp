@@ -511,23 +511,21 @@ void D3D12HelloTriangle::LoadAssets()
 		}
 
         // NOTE: these root parameters must be the same order / type / etc as SetGraphicsRootDescriptorTable, which actually fills in the data
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[14];
-		CD3DX12_ROOT_PARAMETER1 rootParameters[14];
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[12];
+		CD3DX12_ROOT_PARAMETER1 rootParameters[12];
 
 		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0);
         ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0, 0);
         ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1, 0);
         ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
         ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
-        ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
-        ranges[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
-        ranges[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
-        ranges[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
-        ranges[9].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0);
-        ranges[10].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7, 0);
-        ranges[11].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8, 0);
-        ranges[12].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9, 0);
-        ranges[13].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0);
+        ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 2, 0);
+        ranges[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
+        ranges[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0);
+        ranges[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7, 0);
+        ranges[9].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8, 0);
+        ranges[10].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9, 0);
+        ranges[11].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0);
 		rootParameters[0].InitAsDescriptorTable(1, &ranges[0]);
         rootParameters[1].InitAsDescriptorTable(1, &ranges[1]);
         rootParameters[2].InitAsDescriptorTable(1, &ranges[2]);
@@ -540,8 +538,6 @@ void D3D12HelloTriangle::LoadAssets()
         rootParameters[9].InitAsDescriptorTable(1, &ranges[9]);
         rootParameters[10].InitAsDescriptorTable(1, &ranges[10]);
         rootParameters[11].InitAsDescriptorTable(1, &ranges[11]);
-        rootParameters[12].InitAsDescriptorTable(1, &ranges[12]);
-        rootParameters[13].InitAsDescriptorTable(1, &ranges[13]);
 
         D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
             D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
@@ -780,11 +776,11 @@ void D3D12HelloTriangle::SetMaterialTexturesForObject(EMaterial material)
     if (material == EMaterial::Count)
         material = m_material;
 
-    m_commandList->SetGraphicsRootDescriptorTable(8, TextureMgr::MakeGPUHandle(m_materials[(size_t)material][0]));
-    m_commandList->SetGraphicsRootDescriptorTable(9, TextureMgr::MakeGPUHandle(m_materials[(size_t)material][1]));
-    m_commandList->SetGraphicsRootDescriptorTable(10, TextureMgr::MakeGPUHandle(m_materials[(size_t)material][2]));
-    m_commandList->SetGraphicsRootDescriptorTable(11, TextureMgr::MakeGPUHandle(m_materials[(size_t)material][3]));
-    m_commandList->SetGraphicsRootDescriptorTable(12, TextureMgr::MakeGPUHandle(m_materials[(size_t)material][4]));
+    m_commandList->SetGraphicsRootDescriptorTable(6, TextureMgr::MakeGPUHandle(m_materials[(size_t)material][0]));
+    m_commandList->SetGraphicsRootDescriptorTable(7, TextureMgr::MakeGPUHandle(m_materials[(size_t)material][1]));
+    m_commandList->SetGraphicsRootDescriptorTable(8, TextureMgr::MakeGPUHandle(m_materials[(size_t)material][2]));
+    m_commandList->SetGraphicsRootDescriptorTable(9, TextureMgr::MakeGPUHandle(m_materials[(size_t)material][3]));
+    m_commandList->SetGraphicsRootDescriptorTable(10, TextureMgr::MakeGPUHandle(m_materials[(size_t)material][4]));
 }
 
 void D3D12HelloTriangle::PopulateCommandList()
@@ -840,9 +836,7 @@ void D3D12HelloTriangle::PopulateCommandList()
     m_commandList->SetGraphicsRootDescriptorTable(3, TextureMgr::MakeGPUHandle(m_splitSum));
 
     // set the sky box textures
-    m_commandList->SetGraphicsRootDescriptorTable(5, TextureMgr::MakeGPUHandle(m_skyboxes[(size_t)m_skyBox].m_tex));
-    m_commandList->SetGraphicsRootDescriptorTable(6, TextureMgr::MakeGPUHandle(m_skyboxes[(size_t)m_skyBox].m_texDiffuse));
-    m_commandList->SetGraphicsRootDescriptorTable(7, TextureMgr::MakeGPUHandle(m_skyboxes[(size_t)m_skyBox].m_texSpecular));
+    m_commandList->SetGraphicsRootDescriptorTable(5, Device::MakeGPUHandleCBV_SRV_UAV(m_skyboxes[(size_t)m_skyBox].m_descriptorTableHeapID));
 
     // draw regularly
     if (!m_redBlue3DMode)
@@ -859,7 +853,7 @@ void D3D12HelloTriangle::PopulateCommandList()
             PIXScopedEvent(m_commandList.Get(), PIX_COLOR_INDEX(0), "Model: %s", m_skyboxModel.m_name.c_str());
 
             m_commandList->SetPipelineState(m_pipelineStateSkybox[psoIndex].Get());
-            m_commandList->SetGraphicsRootDescriptorTable(13, m_skyboxModel.m_constantBuffer.GetGPUHandle());
+            m_commandList->SetGraphicsRootDescriptorTable(11, m_skyboxModel.m_constantBuffer.GetGPUHandle());
             for (const SSubObject& subObject : m_skyboxModel.m_subObjects)
             {
                 m_commandList->SetGraphicsRootDescriptorTable(4, TextureMgr::MakeGPUHandle(subObject.m_textureDiffuse));
@@ -879,7 +873,7 @@ void D3D12HelloTriangle::PopulateCommandList()
 
             SetMaterialTexturesForObject(s_modelsToLoad[i].modelMaterial);
 
-            m_commandList->SetGraphicsRootDescriptorTable(13, m_models[i].m_constantBuffer.GetGPUHandle());
+            m_commandList->SetGraphicsRootDescriptorTable(11, m_models[i].m_constantBuffer.GetGPUHandle());
             for (const SSubObject& subObject : m_models[i].m_subObjects)
             {
                 m_commandList->SetGraphicsRootDescriptorTable(4, TextureMgr::MakeGPUHandle(subObject.m_textureDiffuse));
@@ -904,7 +898,7 @@ void D3D12HelloTriangle::PopulateCommandList()
             {
                 PIXScopedEvent(m_commandList.Get(), PIX_COLOR_INDEX(0), "Model: %s", m_skyboxModel.m_name.c_str());
                 m_commandList->SetPipelineState(m_pipelineStateSkybox[psoIndex].Get());
-                m_commandList->SetGraphicsRootDescriptorTable(13, m_skyboxModel.m_constantBuffer.GetGPUHandle());
+                m_commandList->SetGraphicsRootDescriptorTable(11, m_skyboxModel.m_constantBuffer.GetGPUHandle());
                 for (const SSubObject& subObject : m_skyboxModel.m_subObjects)
                 {
                     m_commandList->SetGraphicsRootDescriptorTable(4, TextureMgr::MakeGPUHandle(subObject.m_textureDiffuse));
@@ -924,7 +918,7 @@ void D3D12HelloTriangle::PopulateCommandList()
 
                 SetMaterialTexturesForObject(s_modelsToLoad[i].modelMaterial);
 
-                m_commandList->SetGraphicsRootDescriptorTable(13, m_models[i].m_constantBuffer.GetGPUHandle());
+                m_commandList->SetGraphicsRootDescriptorTable(11, m_models[i].m_constantBuffer.GetGPUHandle());
                 for (const SSubObject& subObject : m_models[i].m_subObjects)
                 {
                     m_commandList->SetGraphicsRootDescriptorTable(4, TextureMgr::MakeGPUHandle(subObject.m_textureDiffuse));
@@ -959,7 +953,7 @@ void D3D12HelloTriangle::PopulateCommandList()
 
                 SetMaterialTexturesForObject(s_modelsToLoad[i].modelMaterial);
 
-                m_commandList->SetGraphicsRootDescriptorTable(13, m_models[i].m_constantBuffer.GetGPUHandle());
+                m_commandList->SetGraphicsRootDescriptorTable(11, m_models[i].m_constantBuffer.GetGPUHandle());
                 for (const SSubObject& subObject : m_models[i].m_subObjects)
                 {
                     m_commandList->SetGraphicsRootDescriptorTable(4, TextureMgr::MakeGPUHandle(subObject.m_textureDiffuse));

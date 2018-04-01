@@ -1,5 +1,5 @@
 * make root signature use descriptor tables instead of a bunch of single SRVs!
-
+ * make an enum for root signature usage?
 
 
 
@@ -30,6 +30,7 @@ dont need all of stb, could just get the headers you want
 
 * dx12 tutorial says you need a constant buffer per frame. need to make something for that, or a streaming system to make them on demand as needed.
 
+* there's messages on shutdown about leaked objects. look into that
 
 
 
