@@ -37,6 +37,8 @@ public:
 
     static TextureID CreateUAVTexture (ID3D12Device* device, ID3D12GraphicsCommandList* commandList, UINT64 width, UINT height);
 
+    static HeapID_CBV_SRV_UAV CreateTextureDescriptorTable(ID3D12Device* device, size_t numTextures, TextureID* textures);
+
     static void OnFrameComplete ();
 
     inline static CD3DX12_GPU_DESCRIPTOR_HANDLE MakeGPUHandle (TextureID index)
@@ -139,6 +141,16 @@ private:
         TextureID ret = m_nextTextureID;
         m_nextTextureID = (TextureID)(static_cast<std::underlying_type<TextureID>::type>(m_nextTextureID) + 1);
         return ret;
+    }
+
+    inline static TextureMgr::STexture& GetTexture(TextureID index)
+    {
+        TextureMgr& mgr = Get();
+
+        if (mgr.m_textures.find(index) == mgr.m_textures.end())
+            throw std::exception();
+
+        return mgr.m_textures[index];
     }
 
     bool m_created = false;

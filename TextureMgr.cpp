@@ -638,6 +638,17 @@ TextureID TextureMgr::CreateUAVTexture(ID3D12Device* device, ID3D12GraphicsComma
     return newTextureID;
 }
 
+HeapID_CBV_SRV_UAV TextureMgr::CreateTextureDescriptorTable(ID3D12Device* device, size_t numTextures, TextureID* textures)
+{
+    HeapID_CBV_SRV_UAV ret = Device::ReserveHeapID_CBV_SRV_UAV(numTextures);
+    for (size_t i = 0; i < numTextures; ++i)
+    {
+        STexture& texture = GetTexture(textures[i]);
+        device->CreateShaderResourceView(texture.m_resource, &texture.m_srvDesc, Device::MakeCPUHandleCBV_SRV_UAV(HeapID_CBV_SRV_UAV((size_t)ret + i)));
+    }
+    return ret;
+}
+
 void TextureMgr::OnFrameComplete ()
 {
     // release all texture upload heaps now that we are done with them

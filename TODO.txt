@@ -1,3 +1,8 @@
+* make root signature use descriptor tables instead of a bunch of single SRVs!
+
+
+
+
 
 Just need to make a simple concise dx12 base.  
 ditch managers etc. simple.
@@ -31,5 +36,7 @@ dont need all of stb, could just get the headers you want
 
 
 ? how do descriptor tables work in dx12?
+ * do they even do anything on release?
+ * when you set something, do they just create a new SRV at the already used heap location?
 
 ? why does there need to be per frame resources here? render target views that is. does it do it underneath?

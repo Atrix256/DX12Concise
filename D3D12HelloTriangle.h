@@ -126,6 +126,7 @@ enum class EModel
 
 struct SSkyBoxTextures
 {
+    HeapID_CBV_SRV_UAV m_descriptorTableHeapID;
     TextureID m_tex;
     TextureID m_texDiffuse;
     TextureID m_texSpecular;

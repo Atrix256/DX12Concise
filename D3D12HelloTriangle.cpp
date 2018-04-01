@@ -412,6 +412,15 @@ void D3D12HelloTriangle::LoadSkyboxes()
         m_skyboxes[i].m_tex = TextureMgr::LoadCubeMap(m_graphicsAPI.m_device, m_commandList.Get(), s_skyboxBaseFileName[i], false);
         m_skyboxes[i].m_texDiffuse = TextureMgr::LoadCubeMap(m_graphicsAPI.m_device, m_commandList.Get(), s_skyboxBaseFileNameDiffuse[i], false);
         m_skyboxes[i].m_texSpecular = TextureMgr::LoadCubeMapMips(m_graphicsAPI.m_device, m_commandList.Get(), s_skyboxBaseFileNameSpecular[i], 5, false);
+
+        TextureID textures[] =
+        {
+            m_skyboxes[i].m_tex,
+            m_skyboxes[i].m_texDiffuse,
+            m_skyboxes[i].m_texSpecular
+        };
+
+        m_skyboxes[i].m_descriptorTableHeapID = TextureMgr::CreateTextureDescriptorTable(m_graphicsAPI.m_device, sizeof(textures) / sizeof(textures[0]), textures);
     }
 
     // Position, normal, tangent, uv

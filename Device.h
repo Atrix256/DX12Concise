@@ -63,12 +63,12 @@ public:
         );
     }
 
-    inline static HeapID_CBV_SRV_UAV ReserveHeapID_CBV_SRV_UAV ()
+    inline static HeapID_CBV_SRV_UAV ReserveHeapID_CBV_SRV_UAV (size_t count = 1)
     {
         // reserve an id by incrementing the next ID counter and returning the old value
         Device& mgr = Get();
         HeapID_CBV_SRV_UAV ret = mgr.m_nextID_CBV_SRV_UAV;
-        mgr.m_nextID_CBV_SRV_UAV = (HeapID_CBV_SRV_UAV)(static_cast<std::underlying_type<HeapID_CBV_SRV_UAV>::type>(mgr.m_nextID_CBV_SRV_UAV) + 1);
+        mgr.m_nextID_CBV_SRV_UAV = (HeapID_CBV_SRV_UAV)(static_cast<std::underlying_type<HeapID_CBV_SRV_UAV>::type>(mgr.m_nextID_CBV_SRV_UAV) + count);
 
         // if we use more descriptors than we were told we would, throw an error
         if (static_cast<std::underlying_type<HeapID_CBV_SRV_UAV>::type>(mgr.m_nextID_CBV_SRV_UAV) > static_cast<std::underlying_type<HeapID_CBV_SRV_UAV>::type>(mgr.m_numDescriptors_CBV_SRV_UAV))
