@@ -103,7 +103,9 @@ void TextureMgr::Create(ID3D12Device* device, ID3D12GraphicsCommandList* command
 
     // create an obvious error texture for invalid id
 
-    STexture newTexture;
+    TextureID newTextureID = mgr.ReserveTextureID();
+    mgr.m_textures.insert({ newTextureID, {} });
+    STexture& newTexture = mgr.m_textures.find(newTextureID)->second;
 
     UINT TextureWidth = 256;
     UINT TextureHeight = 256;
@@ -155,8 +157,6 @@ void TextureMgr::Create(ID3D12Device* device, ID3D12GraphicsCommandList* command
     UpdateSubresources(commandList, newTexture.m_resource, textureUploadHeap, 0, 0, 1, &textureData);
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(newTexture.m_resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
 
-    // take a texture ID
-    TextureID newTextureID = mgr.ReserveTextureID();
 
     // add the texture upload heap to the list of heaps to clear when the frame completes
     mgr.m_textureUploadHeaps.insert(textureUploadHeap);
@@ -164,15 +164,13 @@ void TextureMgr::Create(ID3D12Device* device, ID3D12GraphicsCommandList* command
     // add the texture to the texture list
     newTexture.m_heapID = Device::ReserveHeapID_CBV_SRV_UAV();
     newTexture.m_resource = newTexture.m_resource;
-    mgr.m_textures.insert({ newTextureID, newTexture });
 
     // Describe and create a SRV for the texture.
-    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srvDesc.Format = textureDesc.Format;
-    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    srvDesc.Texture2D.MipLevels = 1;
-    device->CreateShaderResourceView(newTexture.m_resource, &srvDesc, MakeCPUHandle(newTextureID));
+    newTexture.m_srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    newTexture.m_srvDesc.Format = textureDesc.Format;
+    newTexture.m_srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    newTexture.m_srvDesc.Texture2D.MipLevels = 1;
+    device->CreateShaderResourceView(newTexture.m_resource, &newTexture.m_srvDesc, MakeCPUHandle(newTextureID));
 
     // for debugging
     SetNameIndexed(newTexture.m_resource, L"Texture", (UINT)newTextureID);
@@ -224,7 +222,10 @@ TextureID TextureMgr::LoadTexture (ID3D12Device* device, ID3D12GraphicsCommandLi
         }
     }
 
-    STexture newTexture;
+    TextureID newTextureID = mgr.ReserveTextureID();
+    mgr.m_textures.insert({ newTextureID,{} });
+    STexture& newTexture = mgr.m_textures.find(newTextureID)->second;
+
     newTexture.m_heapID = Device::ReserveHeapID_CBV_SRV_UAV();
 
     // Describe and create a Texture2D.
@@ -315,19 +316,12 @@ TextureID TextureMgr::LoadTexture (ID3D12Device* device, ID3D12GraphicsCommandLi
 
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(newTexture.m_resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
 
-    // take a texture ID
-    TextureID newTextureID = mgr.ReserveTextureID();
-
-    // add the texture to the texture list
-    mgr.m_textures.insert({ newTextureID, newTexture });
-
     // Describe and create a SRV for the texture.
-    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srvDesc.Format = textureDesc.Format;
-    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    srvDesc.Texture2D.MipLevels = numMips;
-    device->CreateShaderResourceView(newTexture.m_resource, &srvDesc, MakeCPUHandle(newTextureID));
+    newTexture.m_srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    newTexture.m_srvDesc.Format = textureDesc.Format;
+    newTexture.m_srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    newTexture.m_srvDesc.Texture2D.MipLevels = numMips;
+    device->CreateShaderResourceView(newTexture.m_resource, &newTexture.m_srvDesc, MakeCPUHandle(newTextureID));
 
     // add this texture id by it's filename 
     mgr.m_texturesLoaded.insert({fileName, newTextureID});
@@ -383,10 +377,10 @@ TextureID TextureMgr::LoadCubeMap (ID3D12Device* device, ID3D12GraphicsCommandLi
         return TextureID::invalid;
     }
 
-    // take a texture ID
     TextureID newTextureID = mgr.ReserveTextureID();
+    mgr.m_textures.insert({ newTextureID,{} });
+    STexture& newTexture = mgr.m_textures.find(newTextureID)->second;
 
-    STexture newTexture;
     newTexture.m_heapID = Device::ReserveHeapID_CBV_SRV_UAV();
 
     // Describe and create a Texture2D.
@@ -437,16 +431,12 @@ TextureID TextureMgr::LoadCubeMap (ID3D12Device* device, ID3D12GraphicsCommandLi
     // resource barier for all these copies
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(newTexture.m_resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
 
-    // add the texture to the texture list
-    mgr.m_textures.insert({ newTextureID, newTexture });
-
     // Describe and create a SRV for the texture.
-    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srvDesc.Format = textureDesc.Format;
-    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-    srvDesc.Texture2D.MipLevels = 1;
-    device->CreateShaderResourceView(newTexture.m_resource, &srvDesc, MakeCPUHandle(newTextureID));
+    newTexture.m_srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    newTexture.m_srvDesc.Format = textureDesc.Format;
+    newTexture.m_srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+    newTexture.m_srvDesc.Texture2D.MipLevels = 1;
+    device->CreateShaderResourceView(newTexture.m_resource, &newTexture.m_srvDesc, MakeCPUHandle(newTextureID));
 
     // add this texture id by it's filename
     mgr.m_texturesLoadedCubeMaps.insert({fileName, newTextureID});
@@ -514,10 +504,10 @@ TextureID TextureMgr::LoadCubeMapMips(ID3D12Device* device, ID3D12GraphicsComman
         return TextureID::invalid;
     }
 
-    // take a texture ID
     TextureID newTextureID = mgr.ReserveTextureID();
+    mgr.m_textures.insert({ newTextureID,{} });
+    STexture& newTexture = mgr.m_textures.find(newTextureID)->second;
 
-    STexture newTexture;
     newTexture.m_heapID = Device::ReserveHeapID_CBV_SRV_UAV();
 
     // Describe and create a Texture2D.
@@ -574,16 +564,12 @@ TextureID TextureMgr::LoadCubeMapMips(ID3D12Device* device, ID3D12GraphicsComman
     // resource barier for all these copies
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(newTexture.m_resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
 
-    // add the texture to the texture list
-    mgr.m_textures.insert({ newTextureID, newTexture });
-
     // Describe and create a SRV for the texture.
-    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srvDesc.Format = textureDesc.Format;
-    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-    srvDesc.Texture2D.MipLevels = numMips;
-    device->CreateShaderResourceView(newTexture.m_resource, &srvDesc, MakeCPUHandle(newTextureID));
+    newTexture.m_srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    newTexture.m_srvDesc.Format = textureDesc.Format;
+    newTexture.m_srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+    newTexture.m_srvDesc.Texture2D.MipLevels = numMips;
+    device->CreateShaderResourceView(newTexture.m_resource, &newTexture.m_srvDesc, MakeCPUHandle(newTextureID));
 
     // add this texture id by it's filename
     mgr.m_texturesLoadedCubeMaps.insert({fileName, newTextureID});

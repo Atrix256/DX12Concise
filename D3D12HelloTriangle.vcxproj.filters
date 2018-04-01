@@ -110,8 +110,5 @@
       <Filter>Assets\Shaders</Filter>
     </None>
     <None Include="packages.config" />
-    <None Include="assets\Shaders\ssao.hlsl">
-      <Filter>Assets\Shaders</Filter>
-    </None>
   </ItemGroup>
 </Project>

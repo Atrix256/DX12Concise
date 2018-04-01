@@ -114,6 +114,7 @@ public:
 private:
     struct STexture
     {
+        D3D12_SHADER_RESOURCE_VIEW_DESC m_srvDesc = {};
         ID3D12Resource*                 m_resource  = nullptr;
         ID3D12Resource*                 m_resourceShaderInvisible = nullptr;
         HeapID_CBV_SRV_UAV              m_heapID    = HeapID_CBV_SRV_UAV::invalid;
