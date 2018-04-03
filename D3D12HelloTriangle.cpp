@@ -14,7 +14,6 @@
 
 #include "Model.h"
 #include "Math.h"
-#include <fstream>
 #include <vector>
 #include <chrono>
 #include "pix3.h"
@@ -97,72 +96,6 @@ static const bool s_materialTextureLinear[] =
 };
 static_assert(sizeof(s_materialTextureLinear)/sizeof(s_materialTextureLinear[0]) == (size_t)EMaterialTexture::Count, "s_materialTextureLinear has the wrong number of entries");
 
-static void OutputShaderErrorMessage(ID3D10Blob* errorMessage, const WCHAR* shaderFilename)
-{
-    if (!errorMessage)
-        return;
-
-    char* compileErrors;
-    unsigned long long bufferSize, i;
-    std::wofstream fout;
-
-    // Get a pointer to the error message text buffer.
-    compileErrors = (char*)(errorMessage->GetBufferPointer());
-
-    OutputDebugStringA("\n\n===== Shader Errors =====\n");
-    OutputDebugStringA(compileErrors);
-    OutputDebugStringA("\n\n");
-
-    // Get the length of the message.
-    bufferSize = errorMessage->GetBufferSize();
-
-    // Open a file to write the error message to.
-    fout.open("shader-error.txt");
-
-    fout << "Compiling " << shaderFilename << ":\n\n";
-
-    // Write out the error message.
-    for (i = 0; i<bufferSize; i++)
-    {
-        fout << compileErrors[i];
-    }
-
-    // Close the file.
-    fout.close();
-
-    return;
-}
-
-void D3D12HelloTriangle::CompileVSPS (const WCHAR* fileName, ComPtr<ID3DBlob>& vertexShader, ComPtr<ID3DBlob>& pixelShader, SShaderPermutations::EMaterialMode materialMode, SShaderPermutations::EStereoMode stereoMode)
-{
-#if defined(_DEBUG)
-    // Enable better shader debugging with the graphics debugging tools.
-    UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#else
-    UINT compileFlags = m_shaderDebug ? D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION : 0;
-#endif
-
-    char materialModeString[2] = { 0, 0 };
-    materialModeString[0] = '0' + (char)materialMode;
-
-    char stereoModeString[2] = { 0, 0 };
-    stereoModeString[0] = '0' + (char)stereoMode;
-    const D3D_SHADER_MACRO defines[] =
-    {
-        "MATERIAL_MODE", materialModeString,
-        "STEREO_MODE", stereoModeString,
-        NULL, NULL
-    };
-
-    ComPtr<ID3DBlob> error;
-    HRESULT hr = D3DCompileFromFile(fileName, defines, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &error);
-    OutputShaderErrorMessage(error.Get(), fileName);
-    ThrowIfFailed(hr);
-    hr = D3DCompileFromFile(fileName, defines, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, &error);
-    OutputShaderErrorMessage(error.Get(), fileName);
-    ThrowIfFailed(hr);
-}
-
 void D3D12HelloTriangle::MakePSOs()
 {
     // create the model shaders
@@ -172,16 +105,28 @@ void D3D12HelloTriangle::MakePSOs()
         SShaderPermutations::EStereoMode stereoMode;
         SShaderPermutations::GetSettings(i, materialMode, stereoMode);
 
-        ComPtr<ID3DBlob> vertexShader;
-        ComPtr<ID3DBlob> pixelShader;
-        CompileVSPS(L"./assets/Shaders/shaders.hlsl", vertexShader, pixelShader, materialMode, stereoMode);
+        char materialModeString[2] = { 0, 0 };
+        materialModeString[0] = '0' + (char)materialMode;
+
+        char stereoModeString[2] = { 0, 0 };
+        stereoModeString[0] = '0' + (char)stereoMode;
+
+        ID3DBlob* vertexShader;
+        ID3DBlob* pixelShader;
+        m_graphicsAPI.CompileVSPS(L"./assets/Shaders/shaders.hlsl", vertexShader, pixelShader, m_shaderDebug,
+            {
+                { "MATERIAL_MODE", materialModeString },
+                { "STEREO_MODE", stereoModeString },
+                { nullptr, nullptr }
+            }
+        );
 
         // Describe and create the graphics pipeline state object (PSO).
         D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
         psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
         psoDesc.pRootSignature = m_rootSignature;
-        psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
-        psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
+        psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader);
+        psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader);
         psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
         psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
         psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
@@ -212,7 +157,10 @@ void D3D12HelloTriangle::MakePSOs()
             }
         }
 
-        ThrowIfFailed(m_graphicsAPI.m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineStateModels[i])));        
+        ThrowIfFailed(m_graphicsAPI.m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineStateModels[i])));
+
+        vertexShader->Release();
+        pixelShader->Release();
     }
 
 	// create the skybox shader
@@ -222,16 +170,28 @@ void D3D12HelloTriangle::MakePSOs()
         SShaderPermutations::EStereoMode stereoMode;
         SShaderPermutations::GetSettings(i, materialMode, stereoMode);
 
-        ComPtr<ID3DBlob> vertexShader;
-        ComPtr<ID3DBlob> pixelShader;
-        CompileVSPS(L"Assets/Shaders/skybox.hlsl", vertexShader, pixelShader, materialMode, stereoMode);
+        char materialModeString[2] = { 0, 0 };
+        materialModeString[0] = '0' + (char)materialMode;
+
+        char stereoModeString[2] = { 0, 0 };
+        stereoModeString[0] = '0' + (char)stereoMode;
+
+        ID3DBlob* vertexShader;
+        ID3DBlob* pixelShader;
+        m_graphicsAPI.CompileVSPS(L"./assets/Shaders/skybox.hlsl", vertexShader, pixelShader, m_shaderDebug,
+            {
+                { "MATERIAL_MODE", materialModeString },
+                { "STEREO_MODE", stereoModeString },
+                { nullptr, nullptr }
+            }
+        );
 
 		// Describe and create the graphics pipeline state object (PSO).
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 		psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
 		psoDesc.pRootSignature = m_rootSignature;
-		psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
-		psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
+		psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader);
+		psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader);
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
         psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
@@ -250,6 +210,9 @@ void D3D12HelloTriangle::MakePSOs()
         //psoDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
 		ThrowIfFailed(m_graphicsAPI.m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineStateSkybox[i])));
+
+        vertexShader->Release();
+        pixelShader->Release();
 	}
 }
 

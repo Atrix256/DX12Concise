@@ -26,6 +26,7 @@ dont need all of stb, could just get the headers you want
 
 * make demo respect whether dx12 init succeeds or not
  * and make root signature
+ * and compile vsps
 
 * it would be nice if the app didn't have to deal with "what is the current frame index", but maybe the dx12 api would give you the right one to use
 
@@ -39,3 +40,5 @@ dont need all of stb, could just get the headers you want
  * when you set something, do they just create a new SRV at the already used heap location?
 
 ? why does there need to be per frame resources here? render target views that is. does it do it underneath?
+
+* get rid of throws? what to replace them with though?

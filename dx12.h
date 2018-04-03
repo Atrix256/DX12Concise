@@ -17,6 +17,8 @@ public:
 
     ID3D12RootSignature* MakeRootSignature(const std::vector<cdRootSignatureParameter>& rootSignatureParameters);
 
+    bool CompileVSPS(const WCHAR* fileName, ID3DBlob*& vertexShader, ID3DBlob*& pixelShader, bool shaderDebug, const std::vector<D3D_SHADER_MACRO> &defines);
+
     void Destroy()
     {
         m_commandAllocator->Release();

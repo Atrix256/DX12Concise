@@ -171,8 +171,6 @@ private:
 	ComPtr<ID3D12Fence> m_fence;
 	UINT64 m_fenceValue;
 
-    void CompileVSPS(const WCHAR* fileName, ComPtr<ID3DBlob>& vertexShader, ComPtr<ID3DBlob>& pixelShader, SShaderPermutations::EMaterialMode materialMode, SShaderPermutations::EStereoMode stereoMode);
-
     void MakePSOs();
 
 	void LoadPipeline();

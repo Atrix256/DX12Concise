@@ -1,7 +1,45 @@
 #include "stdafx.h"
 
 #include "dx12.h"
+
 #include <array>
+#include <fstream>
+
+static void OutputShaderErrorMessage(ID3D10Blob* errorMessage, const WCHAR* shaderFilename)
+{
+    if (!errorMessage)
+        return;
+
+    char* compileErrors;
+    unsigned long long bufferSize, i;
+    std::wofstream fout;
+
+    // Get a pointer to the error message text buffer.
+    compileErrors = (char*)(errorMessage->GetBufferPointer());
+
+    OutputDebugStringA("\n\n===== Shader Errors =====\n");
+    OutputDebugStringA(compileErrors);
+    OutputDebugStringA("\n\n");
+
+    // Get the length of the message.
+    bufferSize = errorMessage->GetBufferSize();
+
+    // Open a file to write the error message to.
+    fout.open("shader-error.txt");
+
+    fout << "Compiling " << shaderFilename << ":\n\n";
+
+    // Write out the error message.
+    for (i = 0; i < bufferSize; i++)
+    {
+        fout << compileErrors[i];
+    }
+
+    // Close the file.
+    fout.close();
+
+    return;
+}
 
 static void GetHardwareAdapter(IDXGIFactory2* pFactory, IDXGIAdapter1** ppAdapter)
 {
@@ -286,4 +324,30 @@ ID3D12RootSignature* cdGraphicsAPIDX12::MakeRootSignature(const std::vector<cdRo
         error->Release();
 
     return rootSignature;
+}
+
+bool cdGraphicsAPIDX12::CompileVSPS(const WCHAR* fileName, ID3DBlob*& vertexShader, ID3DBlob*& pixelShader, bool shaderDebug, const std::vector<D3D_SHADER_MACRO> &defines)
+{
+    #if defined(_DEBUG)
+        // Enable better shader debugging with the graphics debugging tools.
+        UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+    #else
+        UINT compileFlags = shaderDebug ? D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION : 0;
+    #endif
+
+    ID3DBlob* error;
+    HRESULT hr = D3DCompileFromFile(fileName, &defines[0], D3D_COMPILE_STANDARD_FILE_INCLUDE, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &error);
+    OutputShaderErrorMessage(error, fileName);
+    if (FAILED(hr))
+        return false;
+
+    hr = D3DCompileFromFile(fileName, &defines[0], D3D_COMPILE_STANDARD_FILE_INCLUDE, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, &error);
+    OutputShaderErrorMessage(error, fileName);
+    if (FAILED(hr))
+        return false;
+
+    if(error)
+        error->Release();
+
+    return true;
 }
