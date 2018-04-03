@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 #include "dx12.h"
+#include <array>
 
 static void GetHardwareAdapter(IDXGIFactory2* pFactory, IDXGIAdapter1** ppAdapter)
 {
@@ -229,6 +230,59 @@ bool GraphicsAPIDX12::Create(bool gpuDebug, bool useWarpDevice, unsigned int fra
 
     if (FAILED(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator))))
         return false;
+
+    return true;
+}
+
+bool GraphicsAPIDX12::MakeRootSignature(const std::vector<RootSignatureParameter>& rootSignatureParameters)
+{
+    D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
+
+    // If CheckFeatureSupport succeeds, the HighestVersion returned will not be greater than this.
+    featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+
+    if (FAILED(m_device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
+        featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+
+    // create root parameters
+    std::vector<CD3DX12_DESCRIPTOR_RANGE1> ranges;
+    std::vector<CD3DX12_ROOT_PARAMETER1> rootParameters;
+    ranges.resize(rootSignatureParameters.size());
+    rootParameters.resize(rootSignatureParameters.size());
+
+    std::array<UINT, 4> startingRegisters{};
+    startingRegisters[D3D12_DESCRIPTOR_RANGE_TYPE_UAV] = 1; // the output is uav 0
+
+    for (size_t i = 0; i < rootSignatureParameters.size(); ++i)
+    {
+        ranges[i].Init(rootSignatureParameters[i].type, (UINT)rootSignatureParameters[i].count, startingRegisters[rootSignatureParameters[i].type]);
+        startingRegisters[rootSignatureParameters[i].type] += rootSignatureParameters[i].count;
+    }
+
+    for (size_t i = 0; i < rootSignatureParameters.size(); ++i)
+    {
+        rootParameters[i].InitAsDescriptorTable(1, &ranges[i]);
+    }
+
+    D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
+        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+        D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+        D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+        D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+
+    CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
+    rootSignatureDesc.Init_1_1((UINT)rootParameters.size(), &rootParameters[0], 0, nullptr, rootSignatureFlags);
+
+    ID3DBlob* signature;
+    ID3DBlob* error;
+    if (FAILED(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error)))
+        return false;
+    if (FAILED(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature))))
+        return false;
+
+    signature->Release();
+    if(error)
+        error->Release();
 
     return true;
 }

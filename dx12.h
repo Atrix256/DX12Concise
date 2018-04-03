@@ -4,10 +4,18 @@
 
 #include <vector>
 
+struct RootSignatureParameter
+{
+    D3D12_DESCRIPTOR_RANGE_TYPE type;
+    UINT                        count;
+};
+
 class GraphicsAPIDX12
 {
 public:
     bool Create(bool gpuDebug, bool useWarpDevice, unsigned int frameCount, unsigned int width, unsigned int height, HWND hWnd);
+
+    bool MakeRootSignature(const std::vector<RootSignatureParameter>& rootSignatureParameters);
 
     void Destroy()
     {
@@ -38,6 +46,9 @@ public:
 
         m_device->Release();
         m_device = nullptr;
+
+        m_rootSignature->Release();
+        m_rootSignature = nullptr;
     }
 
     ID3D12Device* m_device = nullptr;
@@ -54,6 +65,8 @@ public:
     unsigned int m_rtvHeapDescriptorSize = 0;
     unsigned int m_dsvHeapDescriptorSize = 0;
     unsigned int m_samplerHeapDescriptorSize = 0;
+
+    ID3D12RootSignature* m_rootSignature = nullptr;
 };
 
 // Number of descriptors allowed of each type. Increase these counts if needed
@@ -61,19 +74,3 @@ static const unsigned int c_maxRTVDescriptors = 50; // Render Target Views
 static const unsigned int c_maxDSVDescriptors = 50; // Depth Stencil Views
 static const unsigned int c_maxSamplerDescriptors = 10; // Texture Samplers
 static const unsigned int c_maxSRVDescriptors = 200; // Shader Resource Views
-
-// TODO: maybe doesn't need to be an enum class. casting to size_t is a little lame
-// Root table enums
-enum class RootTableParameter
-{
-    SceneConstantBuffer = 0,
-    ModelConstantBuffer,
-    TextureSampler,
-    UAV,
-    SplitsumTexture,
-    DiffuseTexture,
-    SkyboxTextureSet,
-    MaterialTextureSet,
-
-    Count
-};

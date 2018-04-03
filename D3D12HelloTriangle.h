@@ -153,7 +153,6 @@ private:
 	// Pipeline objects.
 	CD3DX12_VIEWPORT m_viewport;
 	CD3DX12_RECT m_scissorRect;
-	ComPtr<ID3D12RootSignature> m_rootSignature;
 	ComPtr<ID3D12PipelineState> m_pipelineStateModels[SShaderPermutations::Count];
     ComPtr<ID3D12PipelineState> m_pipelineStateSkybox[SShaderPermutations::Count];
 	ComPtr<ID3D12GraphicsCommandList> m_commandList;

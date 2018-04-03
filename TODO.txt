@@ -25,6 +25,7 @@ dont need all of stb, could just get the headers you want
 * maybe yes, use self releasing pointers in dx12.h so return false etc handles things correctly. at least in the initialization part?
 
 * make demo respect whether dx12 init succeeds or not
+ * and make root signature
 
 * it would be nice if the app didn't have to deal with "what is the current frame index", but maybe the dx12 api would give you the right one to use
 
