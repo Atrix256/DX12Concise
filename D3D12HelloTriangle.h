@@ -157,8 +157,8 @@ private:
     ComPtr<ID3D12PipelineState> m_pipelineStateSkybox[SShaderPermutations::Count];
 	ComPtr<ID3D12GraphicsCommandList> m_commandList;
 
-    cdGraphicsAPIDX12   m_graphicsAPI;
-    cdRootSignature*    m_rootSignature;
+    cdGraphicsAPIDX12       m_graphicsAPI;
+    ID3D12RootSignature*    m_rootSignature;
 
 	// App resources.
     SModel m_skyboxModel;

@@ -179,7 +179,7 @@ void D3D12HelloTriangle::MakePSOs()
         // Describe and create the graphics pipeline state object (PSO).
         D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
         psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
-        psoDesc.pRootSignature = m_rootSignature->m_rootSignature;
+        psoDesc.pRootSignature = m_rootSignature;
         psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
         psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
         psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -229,7 +229,7 @@ void D3D12HelloTriangle::MakePSOs()
 		// Describe and create the graphics pipeline state object (PSO).
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 		psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
-		psoDesc.pRootSignature = m_rootSignature->m_rootSignature;
+		psoDesc.pRootSignature = m_rootSignature;
 		psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
 		psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -751,7 +751,7 @@ void D3D12HelloTriangle::OnDestroy()
 	// cleaned up by the destructor.
 	WaitForPreviousFrame();
 
-    delete m_rootSignature;
+    m_rootSignature->Release();
     m_rootSignature = nullptr;
 
     m_graphicsAPI.Destroy();
@@ -783,7 +783,7 @@ void D3D12HelloTriangle::PopulateCommandList()
 	ThrowIfFailed(m_commandList->Reset(m_graphicsAPI.m_commandAllocator, m_pipelineStateModels[0].Get()));
 
 	// Set necessary state.
-	m_commandList->SetGraphicsRootSignature(m_rootSignature->m_rootSignature);
+	m_commandList->SetGraphicsRootSignature(m_rootSignature);
 
     ID3D12DescriptorHeap* ppHeaps[] = { Device::GetHeap_CBV_SRV_UAV(), m_graphicsAPI.m_samplerHeap };
     m_commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);

@@ -4,21 +4,10 @@
 
 #include <vector>
 
-struct RootSignatureParameter
+struct cdRootSignatureParameter
 {
     D3D12_DESCRIPTOR_RANGE_TYPE type;
     UINT                        count;
-};
-
-struct cdRootSignature
-{
-    ~cdRootSignature()
-    {
-        m_rootSignature->Release();
-        m_rootSignature = nullptr;
-    }
-
-    ID3D12RootSignature* m_rootSignature = nullptr;
 };
 
 class cdGraphicsAPIDX12
@@ -26,7 +15,7 @@ class cdGraphicsAPIDX12
 public:
     bool Create(bool gpuDebug, bool useWarpDevice, unsigned int frameCount, unsigned int width, unsigned int height, HWND hWnd);
 
-    cdRootSignature* MakeRootSignature(const std::vector<RootSignatureParameter>& rootSignatureParameters);
+    ID3D12RootSignature* MakeRootSignature(const std::vector<cdRootSignatureParameter>& rootSignatureParameters);
 
     void Destroy()
     {

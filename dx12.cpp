@@ -234,7 +234,7 @@ bool cdGraphicsAPIDX12::Create(bool gpuDebug, bool useWarpDevice, unsigned int f
     return true;
 }
 
-cdRootSignature* cdGraphicsAPIDX12::MakeRootSignature(const std::vector<RootSignatureParameter>& rootSignatureParameters)
+ID3D12RootSignature* cdGraphicsAPIDX12::MakeRootSignature(const std::vector<cdRootSignatureParameter>& rootSignatureParameters)
 {
     D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
 
@@ -285,7 +285,5 @@ cdRootSignature* cdGraphicsAPIDX12::MakeRootSignature(const std::vector<RootSign
     if(error)
         error->Release();
 
-    cdRootSignature* ret = new cdRootSignature;
-    ret->m_rootSignature = rootSignature;
-    return ret;
+    return rootSignature;
 }
