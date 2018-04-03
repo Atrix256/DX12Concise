@@ -10,12 +10,23 @@ struct RootSignatureParameter
     UINT                        count;
 };
 
+struct RootSignature
+{
+    void Destroy()
+    {
+        m_rootSignature->Release();
+        m_rootSignature = nullptr;
+    }
+
+    ID3D12RootSignature* m_rootSignature = nullptr;
+};
+
 class GraphicsAPIDX12
 {
 public:
     bool Create(bool gpuDebug, bool useWarpDevice, unsigned int frameCount, unsigned int width, unsigned int height, HWND hWnd);
 
-    bool MakeRootSignature(const std::vector<RootSignatureParameter>& rootSignatureParameters);
+    RootSignature* MakeRootSignature(const std::vector<RootSignatureParameter>& rootSignatureParameters);
 
     void Destroy()
     {
@@ -46,9 +57,6 @@ public:
 
         m_device->Release();
         m_device = nullptr;
-
-        m_rootSignature->Release();
-        m_rootSignature = nullptr;
     }
 
     ID3D12Device* m_device = nullptr;
@@ -65,8 +73,6 @@ public:
     unsigned int m_rtvHeapDescriptorSize = 0;
     unsigned int m_dsvHeapDescriptorSize = 0;
     unsigned int m_samplerHeapDescriptorSize = 0;
-
-    ID3D12RootSignature* m_rootSignature = nullptr;
 };
 
 // Number of descriptors allowed of each type. Increase these counts if needed

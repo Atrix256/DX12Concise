@@ -179,7 +179,7 @@ void D3D12HelloTriangle::MakePSOs()
         // Describe and create the graphics pipeline state object (PSO).
         D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
         psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
-        psoDesc.pRootSignature = m_graphicsAPI.m_rootSignature;
+        psoDesc.pRootSignature = m_rootSignature->m_rootSignature;
         psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
         psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
         psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -229,7 +229,7 @@ void D3D12HelloTriangle::MakePSOs()
 		// Describe and create the graphics pipeline state object (PSO).
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 		psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
-		psoDesc.pRootSignature = m_graphicsAPI.m_rootSignature;
+		psoDesc.pRootSignature = m_rootSignature->m_rootSignature;
 		psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
 		psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -265,9 +265,23 @@ D3D12HelloTriangle::D3D12HelloTriangle(UINT width, UINT height, std::wstring nam
 void D3D12HelloTriangle::OnInit()
 {
     m_graphicsAPI.Create(m_GPUDebug, false, FrameCount, m_width, m_height, Win32Application::GetHwnd());
-    m_frameIndex = m_graphicsAPI.m_swapChain->GetCurrentBackBufferIndex();
+    
+    m_rootSignature = m_graphicsAPI.MakeRootSignature(
+        {
+            { D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1 },
+            { D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1 },
+            { D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER , 1},
+            { D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1 },
+            { D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1 },
+            { D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1 },
+            { D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3 },
+            { D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5 }
+        }
+    );    
 
-	LoadAssets();
+    LoadAssets();
+
+    m_frameIndex = m_graphicsAPI.m_swapChain->GetCurrentBackBufferIndex();
 }
 
 void D3D12HelloTriangle::LoadTextures()
@@ -527,19 +541,7 @@ void D3D12HelloTriangle::LoadSkyboxes()
 void D3D12HelloTriangle::LoadAssets()
 {
 
-    m_graphicsAPI.MakeRootSignature(
-        {
-            { D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1 },
-            { D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1 },
-            { D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER , 1},
-            { D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1 },
-            { D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1 },
-            { D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1 },
-            { D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3 },
-            { D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5 }
-        }
-    );
-
+    // TODO: have root signature create PSO's?
     MakePSOs();
 
 	// Create the command list.
@@ -749,7 +751,8 @@ void D3D12HelloTriangle::OnDestroy()
 	// cleaned up by the destructor.
 	WaitForPreviousFrame();
 
-    m_graphicsAPI.m_device->Release();
+    m_rootSignature->Destroy();
+    m_graphicsAPI.Destroy();
 
     TextureMgr::Destroy();
     Device::Destroy();
@@ -778,7 +781,7 @@ void D3D12HelloTriangle::PopulateCommandList()
 	ThrowIfFailed(m_commandList->Reset(m_graphicsAPI.m_commandAllocator, m_pipelineStateModels[0].Get()));
 
 	// Set necessary state.
-	m_commandList->SetGraphicsRootSignature(m_graphicsAPI.m_rootSignature);
+	m_commandList->SetGraphicsRootSignature(m_rootSignature->m_rootSignature);
 
     ID3D12DescriptorHeap* ppHeaps[] = { Device::GetHeap_CBV_SRV_UAV(), m_graphicsAPI.m_samplerHeap };
     m_commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);

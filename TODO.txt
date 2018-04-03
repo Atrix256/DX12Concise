@@ -34,8 +34,8 @@ dont need all of stb, could just get the headers you want
 * there's messages on shutdown about leaked objects. look into that
 
 
-
-
+? should you prefix the major type names in the dx12.h?
+? should m_graphicsAPI be a pointer?
 
 ? how do descriptor tables work in dx12?
  * do they even do anything on release?

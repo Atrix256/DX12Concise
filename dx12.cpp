@@ -234,7 +234,7 @@ bool GraphicsAPIDX12::Create(bool gpuDebug, bool useWarpDevice, unsigned int fra
     return true;
 }
 
-bool GraphicsAPIDX12::MakeRootSignature(const std::vector<RootSignatureParameter>& rootSignatureParameters)
+RootSignature* GraphicsAPIDX12::MakeRootSignature(const std::vector<RootSignatureParameter>& rootSignatureParameters)
 {
     D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
 
@@ -275,14 +275,17 @@ bool GraphicsAPIDX12::MakeRootSignature(const std::vector<RootSignatureParameter
 
     ID3DBlob* signature;
     ID3DBlob* error;
+    ID3D12RootSignature* rootSignature;
     if (FAILED(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error)))
-        return false;
-    if (FAILED(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature))))
-        return false;
+        return nullptr;
+    if (FAILED(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&rootSignature))))
+        return nullptr;
 
     signature->Release();
     if(error)
         error->Release();
 
-    return true;
+    RootSignature* ret = new RootSignature;
+    ret->m_rootSignature = rootSignature;
+    return ret;
 }

@@ -158,6 +158,7 @@ private:
 	ComPtr<ID3D12GraphicsCommandList> m_commandList;
 
     GraphicsAPIDX12 m_graphicsAPI;
+    RootSignature* m_rootSignature;
 
 	// App resources.
     SModel m_skyboxModel;
