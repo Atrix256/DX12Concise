@@ -10,6 +10,8 @@ struct cdRootSignatureParameter
     UINT                        count;
 };
 
+#define SAFE_RELEASE(x) {if (x) {x->Release(); x = nullptr;}}
+
 class cdGraphicsAPIDX12
 {
 public:
@@ -19,41 +21,30 @@ public:
 
     bool CompileVSPS(const WCHAR* fileName, ID3DBlob*& vertexShader, ID3DBlob*& pixelShader, bool shaderDebug, const std::vector<D3D_SHADER_MACRO> &defines);
 
+    bool CreateCommandList(ID3D12PipelineState* pso);
+
     void Destroy()
     {
-        m_commandAllocator->Release();
-        m_commandAllocator = nullptr;
-
         for (ID3D12Resource* r : m_renderTargetsColor)
-            r->Release();
+            SAFE_RELEASE(r);
         m_renderTargetsColor.clear();
 
-        m_depthStencil->Release();
-        m_depthStencil = nullptr;
-
-        m_rtvHeap->Release();
-        m_rtvHeap = nullptr;
-
-        m_dsvHeap->Release();
-        m_dsvHeap = nullptr;
-
-        m_samplerHeap->Release();
-        m_samplerHeap = nullptr;
-
-        m_swapChain->Release();
-        m_swapChain = nullptr;
-
-        m_commandQueue->Release();
-        m_commandQueue = nullptr;
-
-        m_device->Release();
-        m_device = nullptr;
+        SAFE_RELEASE(m_depthStencil);
+        SAFE_RELEASE(m_rtvHeap);
+        SAFE_RELEASE(m_dsvHeap);
+        SAFE_RELEASE(m_samplerHeap);
+        SAFE_RELEASE(m_swapChain);
+        SAFE_RELEASE(m_commandList);
+        SAFE_RELEASE(m_commandAllocator);
+        SAFE_RELEASE(m_commandQueue);
+        SAFE_RELEASE(m_device);
     }
 
     ID3D12Device* m_device = nullptr;
     ID3D12CommandQueue* m_commandQueue = nullptr;
     IDXGISwapChain3* m_swapChain = nullptr;
     ID3D12CommandAllocator* m_commandAllocator = nullptr;
+    ID3D12GraphicsCommandList* m_commandList = nullptr;
 
     std::vector<ID3D12Resource*> m_renderTargetsColor;
     ID3D12Resource* m_depthStencil = nullptr;

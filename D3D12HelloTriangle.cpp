@@ -242,6 +242,10 @@ void D3D12HelloTriangle::OnInit()
         }
     );    
 
+    MakePSOs();
+
+    m_graphicsAPI.CreateCommandList(m_pipelineStateModels[0].Get());
+
     LoadAssets();
 
     m_frameIndex = m_graphicsAPI.m_swapChain->GetCurrentBackBufferIndex();
@@ -249,7 +253,7 @@ void D3D12HelloTriangle::OnInit()
 
 void D3D12HelloTriangle::LoadTextures()
 {
-    m_splitSum = TextureMgr::LoadTexture(m_graphicsAPI.m_device, m_commandList.Get(), "assets/splitsum.png", true, false);
+    m_splitSum = TextureMgr::LoadTexture(m_graphicsAPI.m_device, m_graphicsAPI.m_commandList, "assets/splitsum.png", true, false);
 
     // load the material textures
     size_t fileNameIndex = 0;
@@ -263,11 +267,11 @@ void D3D12HelloTriangle::LoadTextures()
             {
                 char fileName[1024];
                 sprintf_s(fileName, "assets/PBRMaterialTextures/%s", s_materialFileNames[fileNameIndex]);
-                texture = TextureMgr::LoadTexture(m_graphicsAPI.m_device, m_commandList.Get(), fileName, s_materialTextureLinear[textureIndex], true);
+                texture = TextureMgr::LoadTexture(m_graphicsAPI.m_device, m_graphicsAPI.m_commandList, fileName, s_materialTextureLinear[textureIndex], true);
             }
             else
             {
-                texture = TextureMgr::LoadTexture(m_graphicsAPI.m_device, m_commandList.Get(), "Assets/white.png", true, false);
+                texture = TextureMgr::LoadTexture(m_graphicsAPI.m_device, m_graphicsAPI.m_commandList, "Assets/white.png", true, false);
             }
 
             m_materials[materialIndex][textureIndex] = texture;
@@ -392,7 +396,7 @@ void D3D12HelloTriangle::MakeProceduralMeshes()
             v.position.y += 0.5f;
         }
 
-        ModelCreate(m_graphicsAPI.m_device, m_commandList.Get(), m_models[(size_t)EModel::Sphere], false, sphereVertices, "Sphere");
+        ModelCreate(m_graphicsAPI.m_device, m_graphicsAPI.m_commandList, m_models[(size_t)EModel::Sphere], false, sphereVertices, "Sphere");
     }
 
     for (size_t i = 0; i < (size_t)EModel::Count; ++i)
@@ -402,7 +406,7 @@ void D3D12HelloTriangle::MakeProceduralMeshes()
             continue;
         }
 
-        if (!ModelLoad(m_graphicsAPI.m_device, m_commandList.Get(), m_models[i], s_modelsToLoad[i].fileName, s_modelsToLoad[i].baseDir, s_modelsToLoad[i].scale, s_modelsToLoad[i].offset, s_modelsToLoad[i].flipV))
+        if (!ModelLoad(m_graphicsAPI.m_device, m_graphicsAPI.m_commandList, m_models[i], s_modelsToLoad[i].fileName, s_modelsToLoad[i].baseDir, s_modelsToLoad[i].scale, s_modelsToLoad[i].offset, s_modelsToLoad[i].flipV))
         {
             throw std::exception();
         }
@@ -414,9 +418,9 @@ void D3D12HelloTriangle::LoadSkyboxes()
     // load the skyboxes
     for (size_t i = 0; i < (size_t)ESkyBox::Count; ++i)
     {
-        m_skyboxes[i].m_tex = TextureMgr::LoadCubeMap(m_graphicsAPI.m_device, m_commandList.Get(), s_skyboxBaseFileName[i], false);
-        m_skyboxes[i].m_texDiffuse = TextureMgr::LoadCubeMap(m_graphicsAPI.m_device, m_commandList.Get(), s_skyboxBaseFileNameDiffuse[i], false);
-        m_skyboxes[i].m_texSpecular = TextureMgr::LoadCubeMapMips(m_graphicsAPI.m_device, m_commandList.Get(), s_skyboxBaseFileNameSpecular[i], 5, false);
+        m_skyboxes[i].m_tex = TextureMgr::LoadCubeMap(m_graphicsAPI.m_device, m_graphicsAPI.m_commandList, s_skyboxBaseFileName[i], false);
+        m_skyboxes[i].m_texDiffuse = TextureMgr::LoadCubeMap(m_graphicsAPI.m_device, m_graphicsAPI.m_commandList, s_skyboxBaseFileNameDiffuse[i], false);
+        m_skyboxes[i].m_texSpecular = TextureMgr::LoadCubeMapMips(m_graphicsAPI.m_device, m_graphicsAPI.m_commandList, s_skyboxBaseFileNameSpecular[i], 5, false);
 
         TextureID textures[] =
         {
@@ -497,23 +501,19 @@ void D3D12HelloTriangle::LoadSkyboxes()
     };
 
     // make the skybox model
-    ModelCreate(m_graphicsAPI.m_device, m_commandList.Get(), m_skyboxModel, true, skyboxVertices, "Skybox");
+    ModelCreate(m_graphicsAPI.m_device, m_graphicsAPI.m_commandList, m_skyboxModel, true, skyboxVertices, "Skybox");
 }
 
 // Load the sample assets.
 void D3D12HelloTriangle::LoadAssets()
 {
-
-    // TODO: have root signature create PSO's?
-    MakePSOs();
-
 	// Create the command list.
-	ThrowIfFailed(m_graphicsAPI.m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_graphicsAPI.m_commandAllocator, m_pipelineStateModels[0].Get(), IID_PPV_ARGS(&m_commandList)));
+
 
     Device::Create(m_graphicsAPI.m_device, c_maxSRVDescriptors);
-    TextureMgr::Create(m_graphicsAPI.m_device, m_commandList.Get());
+    TextureMgr::Create(m_graphicsAPI.m_device, m_graphicsAPI.m_commandList);
 
-    m_uav = TextureMgr::CreateUAVTexture(m_graphicsAPI.m_device, m_commandList.Get(), m_width, m_height);
+    m_uav = TextureMgr::CreateUAVTexture(m_graphicsAPI.m_device, m_graphicsAPI.m_commandList, m_width, m_height);
 
 	// Create a texture samplers
 	{
@@ -540,8 +540,8 @@ void D3D12HelloTriangle::LoadAssets()
     MakeProceduralMeshes();
 
     // Close the command list and execute it to begin the initial GPU setup.
-    ThrowIfFailed(m_commandList->Close());
-    ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
+    ThrowIfFailed(m_graphicsAPI.m_commandList->Close());
+    ID3D12CommandList* ppCommandLists[] = { m_graphicsAPI.m_commandList };
     m_graphicsAPI.m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
     m_constantBuffer.Init(m_graphicsAPI.m_device);
@@ -696,7 +696,7 @@ void D3D12HelloTriangle::OnRender()
 	PopulateCommandList();
 
 	// Execute the command list.
-	ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
+	ID3D12CommandList* ppCommandLists[] = { m_graphicsAPI.m_commandList };
     m_graphicsAPI.m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 	// Present the frame.
@@ -730,7 +730,7 @@ void D3D12HelloTriangle::SetMaterialTexturesForObject(EMaterial material)
     if (material == EMaterial::Count)
         material = m_material;
 
-    m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::MaterialTextureSet, Device::MakeGPUHandleCBV_SRV_UAV(m_materialDescriptorTableHeapID[(size_t)material]));
+    m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::MaterialTextureSet, Device::MakeGPUHandleCBV_SRV_UAV(m_materialDescriptorTableHeapID[(size_t)material]));
 }
 
 void D3D12HelloTriangle::PopulateCommandList()
@@ -743,34 +743,34 @@ void D3D12HelloTriangle::PopulateCommandList()
 	// However, when ExecuteCommandList() is called on a particular command 
 	// list, that command list can then be reset at any time and must be before 
 	// re-recording.
-	ThrowIfFailed(m_commandList->Reset(m_graphicsAPI.m_commandAllocator, m_pipelineStateModels[0].Get()));
+	ThrowIfFailed(m_graphicsAPI.m_commandList->Reset(m_graphicsAPI.m_commandAllocator, m_pipelineStateModels[0].Get()));
 
 	// Set necessary state.
-	m_commandList->SetGraphicsRootSignature(m_rootSignature);
+    m_graphicsAPI.m_commandList->SetGraphicsRootSignature(m_rootSignature);
 
     ID3D12DescriptorHeap* ppHeaps[] = { Device::GetHeap_CBV_SRV_UAV(), m_graphicsAPI.m_samplerHeap };
-    m_commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+    m_graphicsAPI.m_commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 
-    m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::SceneConstantBuffer, m_constantBuffer.GetGPUHandle());
-    m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::TextureSampler, m_graphicsAPI.m_samplerHeap->GetGPUDescriptorHandleForHeapStart());
-    m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::UAV, TextureMgr::MakeGPUHandle(m_uav));
+    m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::SceneConstantBuffer, m_constantBuffer.GetGPUHandle());
+    m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::TextureSampler, m_graphicsAPI.m_samplerHeap->GetGPUDescriptorHandleForHeapStart());
+    m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::UAV, TextureMgr::MakeGPUHandle(m_uav));
 
-	m_commandList->RSSetViewports(1, &m_viewport);
-	m_commandList->RSSetScissorRects(1, &m_scissorRect);
+    m_graphicsAPI.m_commandList->RSSetViewports(1, &m_viewport);
+    m_graphicsAPI.m_commandList->RSSetScissorRects(1, &m_scissorRect);
 
 	// Indicate that the back buffer will be used as a render target.
-	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_graphicsAPI.m_renderTargetsColor[m_frameIndex], D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+    m_graphicsAPI.m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_graphicsAPI.m_renderTargetsColor[m_frameIndex], D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_graphicsAPI.m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_graphicsAPI.m_rtvHeapDescriptorSize);
     CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(m_graphicsAPI.m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
-	m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
+    m_graphicsAPI.m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
 	// Record commands.
     // Don't need to clear color, because we draw a skybox that erases everything anyways
 	//const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
-	//m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-    m_commandList->ClearDepthStencilView(m_graphicsAPI.m_dsvHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-	m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	//m_graphicsAPI.m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+    m_graphicsAPI.m_commandList->ClearDepthStencilView(m_graphicsAPI.m_dsvHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+    m_graphicsAPI.m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     // clear the uav
     {
@@ -779,19 +779,19 @@ void D3D12HelloTriangle::PopulateCommandList()
         ID3D12Resource* resource = TextureMgr::GetResourceShaderInvisible(m_uav);
 
         const float uavClear[] = { 0.0f, 0.0f, 1.0f, 0.0f };
-        m_commandList->ClearUnorderedAccessViewFloat(gpuHandle, cpuHandle, resource, uavClear, 0, nullptr);
+        m_graphicsAPI.m_commandList->ClearUnorderedAccessViewFloat(gpuHandle, cpuHandle, resource, uavClear, 0, nullptr);
     }
 
     // set the split sum texture
-    m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::SplitsumTexture, TextureMgr::MakeGPUHandle(m_splitSum));
+    m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::SplitsumTexture, TextureMgr::MakeGPUHandle(m_splitSum));
 
     // set the sky box textures
-    m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::SkyboxTextureSet, Device::MakeGPUHandleCBV_SRV_UAV(m_skyboxes[(size_t)m_skyBox].m_descriptorTableHeapID));
+    m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::SkyboxTextureSet, Device::MakeGPUHandleCBV_SRV_UAV(m_skyboxes[(size_t)m_skyBox].m_descriptorTableHeapID));
 
     // draw regularly
     if (!m_redBlue3DMode)
     {
-        PIXScopedEvent(m_commandList.Get(), PIX_COLOR_INDEX(0), "Render Meshes");
+        PIXScopedEvent(m_graphicsAPI.m_commandList, PIX_COLOR_INDEX(0), "Render Meshes");
 
         // figure out the shader permutation parameters
         SShaderPermutations::EMaterialMode materialMode = (m_material == EMaterial::DiffuseWhite) ? SShaderPermutations::EMaterialMode::untextured : SShaderPermutations::EMaterialMode::textured;
@@ -800,35 +800,35 @@ void D3D12HelloTriangle::PopulateCommandList()
 
         // draw the skybox model first
         {
-            PIXScopedEvent(m_commandList.Get(), PIX_COLOR_INDEX(0), "Model: %s", m_skyboxModel.m_name.c_str());
+            PIXScopedEvent(m_graphicsAPI.m_commandList, PIX_COLOR_INDEX(0), "Model: %s", m_skyboxModel.m_name.c_str());
 
-            m_commandList->SetPipelineState(m_pipelineStateSkybox[psoIndex].Get());
-            m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::ModelConstantBuffer, m_skyboxModel.m_constantBuffer.GetGPUHandle());
+            m_graphicsAPI.m_commandList->SetPipelineState(m_pipelineStateSkybox[psoIndex].Get());
+            m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::ModelConstantBuffer, m_skyboxModel.m_constantBuffer.GetGPUHandle());
             for (const SSubObject& subObject : m_skyboxModel.m_subObjects)
             {
-                m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::DiffuseTexture, TextureMgr::MakeGPUHandle(subObject.m_textureDiffuse));
-                m_commandList->IASetVertexBuffers(0, 1, &subObject.m_vertexBufferView);
-                m_commandList->DrawInstanced(subObject.m_numVertices, 1, 0, 0);
+                m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::DiffuseTexture, TextureMgr::MakeGPUHandle(subObject.m_textureDiffuse));
+                m_graphicsAPI.m_commandList->IASetVertexBuffers(0, 1, &subObject.m_vertexBufferView);
+                m_graphicsAPI.m_commandList->DrawInstanced(subObject.m_numVertices, 1, 0, 0);
             }
         }
 
         // draw the models
-        m_commandList->SetPipelineState(m_pipelineStateModels[psoIndex].Get());
+        m_graphicsAPI.m_commandList->SetPipelineState(m_pipelineStateModels[psoIndex].Get());
         for (size_t i = 0; i < (size_t)EModel::Count; ++i)
         {
             if (m_models[i].m_subObjects.size() == 0)
                 continue;
 
-            PIXScopedEvent(m_commandList.Get(), PIX_COLOR_INDEX(0), "Model: %s", m_models[i].m_name.c_str());
+            PIXScopedEvent(m_graphicsAPI.m_commandList, PIX_COLOR_INDEX(0), "Model: %s", m_models[i].m_name.c_str());
 
             SetMaterialTexturesForObject(s_modelsToLoad[i].modelMaterial);
 
-            m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::ModelConstantBuffer, m_models[i].m_constantBuffer.GetGPUHandle());
+            m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::ModelConstantBuffer, m_models[i].m_constantBuffer.GetGPUHandle());
             for (const SSubObject& subObject : m_models[i].m_subObjects)
             {
-                m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::DiffuseTexture, TextureMgr::MakeGPUHandle(subObject.m_textureDiffuse));
-                m_commandList->IASetVertexBuffers(0, 1, &subObject.m_vertexBufferView);
-                m_commandList->DrawInstanced(subObject.m_numVertices, 1, 0, 0);
+                m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::DiffuseTexture, TextureMgr::MakeGPUHandle(subObject.m_textureDiffuse));
+                m_graphicsAPI.m_commandList->IASetVertexBuffers(0, 1, &subObject.m_vertexBufferView);
+                m_graphicsAPI.m_commandList->DrawInstanced(subObject.m_numVertices, 1, 0, 0);
             }
         }
     }
@@ -837,7 +837,7 @@ void D3D12HelloTriangle::PopulateCommandList()
     {
         // red
         {
-            PIXScopedEvent(m_commandList.Get(), PIX_COLOR_INDEX(0), "Render Meshes (Red)");
+            PIXScopedEvent(m_graphicsAPI.m_commandList, PIX_COLOR_INDEX(0), "Render Meshes (Red)");
 
             // figure out the shader permutation parameters
             SShaderPermutations::EMaterialMode materialMode = (m_material == EMaterial::DiffuseWhite) ? SShaderPermutations::EMaterialMode::untextured : SShaderPermutations::EMaterialMode::textured;
@@ -846,44 +846,44 @@ void D3D12HelloTriangle::PopulateCommandList()
 
             // draw the skybox model first
             {
-                PIXScopedEvent(m_commandList.Get(), PIX_COLOR_INDEX(0), "Model: %s", m_skyboxModel.m_name.c_str());
-                m_commandList->SetPipelineState(m_pipelineStateSkybox[psoIndex].Get());
-                m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::ModelConstantBuffer, m_skyboxModel.m_constantBuffer.GetGPUHandle());
+                PIXScopedEvent(m_graphicsAPI.m_commandList, PIX_COLOR_INDEX(0), "Model: %s", m_skyboxModel.m_name.c_str());
+                m_graphicsAPI.m_commandList->SetPipelineState(m_pipelineStateSkybox[psoIndex].Get());
+                m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::ModelConstantBuffer, m_skyboxModel.m_constantBuffer.GetGPUHandle());
                 for (const SSubObject& subObject : m_skyboxModel.m_subObjects)
                 {
-                    m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::DiffuseTexture, TextureMgr::MakeGPUHandle(subObject.m_textureDiffuse));
-                    m_commandList->IASetVertexBuffers(0, 1, &subObject.m_vertexBufferView);
-                    m_commandList->DrawInstanced(subObject.m_numVertices, 1, 0, 0);
+                    m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::DiffuseTexture, TextureMgr::MakeGPUHandle(subObject.m_textureDiffuse));
+                    m_graphicsAPI.m_commandList->IASetVertexBuffers(0, 1, &subObject.m_vertexBufferView);
+                    m_graphicsAPI.m_commandList->DrawInstanced(subObject.m_numVertices, 1, 0, 0);
                 }
             }
 
             // draw the models
-            m_commandList->SetPipelineState(m_pipelineStateModels[psoIndex].Get());
+            m_graphicsAPI.m_commandList->SetPipelineState(m_pipelineStateModels[psoIndex].Get());
             for (size_t i = 0; i < (size_t)EModel::Count; ++i)
             {
                 if (m_models[i].m_subObjects.size() == 0)
                     continue;
 
-                PIXScopedEvent(m_commandList.Get(), PIX_COLOR_INDEX(0), "Model: %s", m_models[i].m_name.c_str());
+                PIXScopedEvent(m_graphicsAPI.m_commandList, PIX_COLOR_INDEX(0), "Model: %s", m_models[i].m_name.c_str());
 
                 SetMaterialTexturesForObject(s_modelsToLoad[i].modelMaterial);
 
-                m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::ModelConstantBuffer, m_models[i].m_constantBuffer.GetGPUHandle());
+                m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::ModelConstantBuffer, m_models[i].m_constantBuffer.GetGPUHandle());
                 for (const SSubObject& subObject : m_models[i].m_subObjects)
                 {
-                    m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::DiffuseTexture, TextureMgr::MakeGPUHandle(subObject.m_textureDiffuse));
-                    m_commandList->IASetVertexBuffers(0, 1, &subObject.m_vertexBufferView);
-                    m_commandList->DrawInstanced(subObject.m_numVertices, 1, 0, 0);
+                    m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::DiffuseTexture, TextureMgr::MakeGPUHandle(subObject.m_textureDiffuse));
+                    m_graphicsAPI.m_commandList->IASetVertexBuffers(0, 1, &subObject.m_vertexBufferView);
+                    m_graphicsAPI.m_commandList->DrawInstanced(subObject.m_numVertices, 1, 0, 0);
                 }
             }
         }
 
         // clear depth
-        m_commandList->ClearDepthStencilView(m_graphicsAPI.m_dsvHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+        m_graphicsAPI.m_commandList->ClearDepthStencilView(m_graphicsAPI.m_dsvHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
         // blue
         {
-            PIXScopedEvent(m_commandList.Get(), PIX_COLOR_INDEX(0), "Render Meshes (Blue)");
+            PIXScopedEvent(m_graphicsAPI.m_commandList, PIX_COLOR_INDEX(0), "Render Meshes (Blue)");
 
             // figure out the shader permutation parameters
             SShaderPermutations::EMaterialMode materialMode = (m_material == EMaterial::DiffuseWhite) ? SShaderPermutations::EMaterialMode::untextured : SShaderPermutations::EMaterialMode::textured;
@@ -893,31 +893,31 @@ void D3D12HelloTriangle::PopulateCommandList()
             // no need to render the skybox the second time. It would find the same things, so we handle it all in the red pass
 
             // draw the models
-            m_commandList->SetPipelineState(m_pipelineStateModels[psoIndex].Get());
+            m_graphicsAPI.m_commandList->SetPipelineState(m_pipelineStateModels[psoIndex].Get());
             for (size_t i = 0; i < (size_t)EModel::Count; ++i)
             {
                 if (m_models[i].m_subObjects.size() == 0)
                     continue;
 
-                PIXScopedEvent(m_commandList.Get(), PIX_COLOR_INDEX(0), "Model: %s", m_models[i].m_name.c_str());
+                PIXScopedEvent(m_graphicsAPI.m_commandList, PIX_COLOR_INDEX(0), "Model: %s", m_models[i].m_name.c_str());
 
                 SetMaterialTexturesForObject(s_modelsToLoad[i].modelMaterial);
 
-                m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::ModelConstantBuffer, m_models[i].m_constantBuffer.GetGPUHandle());
+                m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::ModelConstantBuffer, m_models[i].m_constantBuffer.GetGPUHandle());
                 for (const SSubObject& subObject : m_models[i].m_subObjects)
                 {
-                    m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::DiffuseTexture, TextureMgr::MakeGPUHandle(subObject.m_textureDiffuse));
-                    m_commandList->IASetVertexBuffers(0, 1, &subObject.m_vertexBufferView);
-                    m_commandList->DrawInstanced(subObject.m_numVertices, 1, 0, 0);
+                    m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::DiffuseTexture, TextureMgr::MakeGPUHandle(subObject.m_textureDiffuse));
+                    m_graphicsAPI.m_commandList->IASetVertexBuffers(0, 1, &subObject.m_vertexBufferView);
+                    m_graphicsAPI.m_commandList->DrawInstanced(subObject.m_numVertices, 1, 0, 0);
                 }
             }
         }
     }
 
 	// Indicate that the back buffer will now be used to present.
-	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_graphicsAPI.m_renderTargetsColor[m_frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+    m_graphicsAPI.m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_graphicsAPI.m_renderTargetsColor[m_frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
-	ThrowIfFailed(m_commandList->Close());
+	ThrowIfFailed(m_graphicsAPI.m_commandList->Close());
 }
 
 void D3D12HelloTriangle::WaitForPreviousFrame()

@@ -351,3 +351,11 @@ bool cdGraphicsAPIDX12::CompileVSPS(const WCHAR* fileName, ID3DBlob*& vertexShad
 
     return true;
 }
+
+bool cdGraphicsAPIDX12::CreateCommandList(ID3D12PipelineState* pso)
+{
+    if (FAILED(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator, pso, IID_PPV_ARGS(&m_commandList))))
+        return false;
+
+    return true;
+}

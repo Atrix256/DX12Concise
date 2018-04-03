@@ -155,7 +155,6 @@ private:
 	CD3DX12_RECT m_scissorRect;
 	ComPtr<ID3D12PipelineState> m_pipelineStateModels[SShaderPermutations::Count];
     ComPtr<ID3D12PipelineState> m_pipelineStateSkybox[SShaderPermutations::Count];
-	ComPtr<ID3D12GraphicsCommandList> m_commandList;
 
     cdGraphicsAPIDX12       m_graphicsAPI;
     ID3D12RootSignature*    m_rootSignature;
