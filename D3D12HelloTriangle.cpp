@@ -751,7 +751,9 @@ void D3D12HelloTriangle::OnDestroy()
 	// cleaned up by the destructor.
 	WaitForPreviousFrame();
 
-    m_rootSignature->Destroy();
+    delete m_rootSignature;
+    m_rootSignature = nullptr;
+
     m_graphicsAPI.Destroy();
 
     TextureMgr::Destroy();

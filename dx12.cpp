@@ -31,7 +31,7 @@ static void GetHardwareAdapter(IDXGIFactory2* pFactory, IDXGIAdapter1** ppAdapte
     *ppAdapter = adapter;
 }
 
-bool GraphicsAPIDX12::Create(bool gpuDebug, bool useWarpDevice, unsigned int frameCount, unsigned int width, unsigned int height, HWND hWnd)
+bool cdGraphicsAPIDX12::Create(bool gpuDebug, bool useWarpDevice, unsigned int frameCount, unsigned int width, unsigned int height, HWND hWnd)
 {
 
     // ==================== Create factory ====================
@@ -234,7 +234,7 @@ bool GraphicsAPIDX12::Create(bool gpuDebug, bool useWarpDevice, unsigned int fra
     return true;
 }
 
-RootSignature* GraphicsAPIDX12::MakeRootSignature(const std::vector<RootSignatureParameter>& rootSignatureParameters)
+cdRootSignature* cdGraphicsAPIDX12::MakeRootSignature(const std::vector<RootSignatureParameter>& rootSignatureParameters)
 {
     D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
 
@@ -285,7 +285,7 @@ RootSignature* GraphicsAPIDX12::MakeRootSignature(const std::vector<RootSignatur
     if(error)
         error->Release();
 
-    RootSignature* ret = new RootSignature;
+    cdRootSignature* ret = new cdRootSignature;
     ret->m_rootSignature = rootSignature;
     return ret;
 }

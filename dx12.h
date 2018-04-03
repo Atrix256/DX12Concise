@@ -10,9 +10,9 @@ struct RootSignatureParameter
     UINT                        count;
 };
 
-struct RootSignature
+struct cdRootSignature
 {
-    void Destroy()
+    ~cdRootSignature()
     {
         m_rootSignature->Release();
         m_rootSignature = nullptr;
@@ -21,12 +21,12 @@ struct RootSignature
     ID3D12RootSignature* m_rootSignature = nullptr;
 };
 
-class GraphicsAPIDX12
+class cdGraphicsAPIDX12
 {
 public:
     bool Create(bool gpuDebug, bool useWarpDevice, unsigned int frameCount, unsigned int width, unsigned int height, HWND hWnd);
 
-    RootSignature* MakeRootSignature(const std::vector<RootSignatureParameter>& rootSignatureParameters);
+    cdRootSignature* MakeRootSignature(const std::vector<RootSignatureParameter>& rootSignatureParameters);
 
     void Destroy()
     {
