@@ -507,10 +507,8 @@ void D3D12HelloTriangle::LoadSkyboxes()
 // Load the sample assets.
 void D3D12HelloTriangle::LoadAssets()
 {
-	// Create the command list.
 
-
-    Device::Create(m_graphicsAPI.m_device, c_maxSRVDescriptors);
+    Device::Create(m_graphicsAPI.m_device, c_maxGeneralDescriptors);
     TextureMgr::Create(m_graphicsAPI.m_device, m_graphicsAPI.m_commandList);
 
     m_uav = TextureMgr::CreateUAVTexture(m_graphicsAPI.m_device, m_graphicsAPI.m_commandList, m_width, m_height);

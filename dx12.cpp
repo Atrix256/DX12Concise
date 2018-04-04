@@ -212,9 +212,23 @@ bool cdGraphicsAPIDX12::Create(bool gpuDebug, bool useWarpDevice, unsigned int f
     if (FAILED(m_device->CreateDescriptorHeap(&samplerHeapDesc, IID_PPV_ARGS(&m_samplerHeap))))
         return false;
 
+    // shader visible, CPU write only
+    D3D12_DESCRIPTOR_HEAP_DESC generalHeapDesc = {};
+    generalHeapDesc.NumDescriptors = c_maxGeneralDescriptors;
+    generalHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    generalHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    if (FAILED(m_device->CreateDescriptorHeap(&generalHeapDesc, IID_PPV_ARGS(&m_generalHeap))))
+        return false;
+
+    // shader invisible, CPU read/write
+    generalHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+    if (FAILED(m_device->CreateDescriptorHeap(&generalHeapDesc, IID_PPV_ARGS(&m_generalHeapShaderInvisible))))
+        return false;
+
     m_rtvHeapDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     m_dsvHeapDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
     m_samplerHeapDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+    m_generalHeapDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     // ==================== Create RTV Descriptors ====================
 

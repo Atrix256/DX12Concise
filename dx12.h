@@ -33,6 +33,8 @@ public:
         SAFE_RELEASE(m_rtvHeap);
         SAFE_RELEASE(m_dsvHeap);
         SAFE_RELEASE(m_samplerHeap);
+        SAFE_RELEASE(m_generalHeap);
+        SAFE_RELEASE(m_generalHeapShaderInvisible);
         SAFE_RELEASE(m_swapChain);
         SAFE_RELEASE(m_commandList);
         SAFE_RELEASE(m_commandAllocator);
@@ -52,13 +54,19 @@ public:
     ID3D12DescriptorHeap* m_rtvHeap = nullptr;
     ID3D12DescriptorHeap* m_dsvHeap = nullptr;
     ID3D12DescriptorHeap* m_samplerHeap = nullptr;
+    ID3D12DescriptorHeap* m_generalHeap = nullptr;
+    ID3D12DescriptorHeap* m_generalHeapShaderInvisible = nullptr;
+
     unsigned int m_rtvHeapDescriptorSize = 0;
     unsigned int m_dsvHeapDescriptorSize = 0;
     unsigned int m_samplerHeapDescriptorSize = 0;
+    unsigned int m_generalHeapDescriptorSize = 0;
+
+    unsigned int m_generalHeapDescriptorNextID = 0;
 };
 
 // Number of descriptors allowed of each type. Increase these counts if needed
 static const unsigned int c_maxRTVDescriptors = 50; // Render Target Views
 static const unsigned int c_maxDSVDescriptors = 50; // Depth Stencil Views
 static const unsigned int c_maxSamplerDescriptors = 10; // Texture Samplers
-static const unsigned int c_maxSRVDescriptors = 200; // Shader Resource Views
+static const unsigned int c_maxGeneralDescriptors = 200; // Shader Resource Views, unordered access views, constant buffer views
