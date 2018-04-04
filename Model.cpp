@@ -2,11 +2,12 @@
 
 #include "Model.h"
 #include "Math.h"
+#include "dx12.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tinyobj/tiny_obj_loader.h"
 
-bool ModelLoad(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, SModel& model, const char* fileName, const char* baseFilePath, float scale, XMFLOAT3 offset, bool flipV)
+bool ModelLoad(cdGraphicsAPIDX12& graphicsAPI, SModel& model, const char* fileName, const char* baseFilePath, float scale, XMFLOAT3 offset, bool flipV)
 {
     model.m_name = fileName;
 
@@ -40,7 +41,7 @@ bool ModelLoad(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, SMo
         bool calculateNormals = attrib.normals.size() == 0;
 
         // load textures
-        subObject.m_textureDiffuse = TextureMgr::LoadTexture(device, commandList, "Assets/white.png", false, false);
+        subObject.m_textureDiffuse = TextureMgr::LoadTexture(graphicsAPI, "Assets/white.png", false, false);
         if (shape.mesh.material_ids.size() > 0)
         {
             int materialID = shape.mesh.material_ids[0];
@@ -52,7 +53,7 @@ bool ModelLoad(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, SMo
                 {
                     textureName = baseFilePath == nullptr ? "" : baseFilePath;
                     textureName += material.diffuse_texname;
-                    subObject.m_textureDiffuse = TextureMgr::LoadTexture(device, commandList, textureName.c_str(), false, true);
+                    subObject.m_textureDiffuse = TextureMgr::LoadTexture(graphicsAPI, textureName.c_str(), false, true);
                 }
             }
         }
@@ -132,7 +133,7 @@ bool ModelLoad(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, SMo
         // recommended. Every time the GPU needs it, the upload heap will be marshalled 
         // over. Please read up on Default Heap usage. An upload heap is used here for 
         // code simplicity and because there are very few verts to actually transfer.
-        ThrowIfFailed(device->CreateCommittedResource(
+        ThrowIfFailed(graphicsAPI.m_device->CreateCommittedResource(
             &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
             D3D12_HEAP_FLAG_NONE,
             &CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
@@ -157,7 +158,7 @@ bool ModelLoad(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, SMo
     }
 
     // init the per model constant buffer
-    model.m_constantBuffer.Init(device);
+    model.m_constantBuffer.Init(graphicsAPI);
     model.m_constantBuffer.Write(
         [&] (SModelConstantBuffer& buffer) {
             buffer.modelMatrix = XMMatrixTranspose(XMMatrixMultiply(XMMatrixScaling(scale, scale, scale), XMMatrixTranslation(offset.x, offset.y, offset.z)));
@@ -167,7 +168,7 @@ bool ModelLoad(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, SMo
     return true;
 }
 
-void ModelCreate (ID3D12Device* device, ID3D12GraphicsCommandList* commandList, SModel& model, bool calculateNormals, std::vector<Vertex>& triangleVertices, const char* debugName)
+void ModelCreate (cdGraphicsAPIDX12& graphicsAPI, SModel& model, bool calculateNormals, std::vector<Vertex>& triangleVertices, const char* debugName)
 {
     model.m_name = debugName;
 
@@ -219,13 +220,13 @@ void ModelCreate (ID3D12Device* device, ID3D12GraphicsCommandList* commandList, 
     SSubObject &subObject = *model.m_subObjects.begin();
     subObject.m_numVertices = UINT(triangleVertices.size());
     UINT vertexBufferSize = UINT(triangleVertices.size() * sizeof(triangleVertices[0]));
-    subObject.m_textureDiffuse = TextureMgr::LoadTexture(device, commandList, "Assets/white.png", false, false);
+    subObject.m_textureDiffuse = TextureMgr::LoadTexture(graphicsAPI, "Assets/white.png", false, false);
 
     // Note: using upload heaps to transfer static data like vert buffers is not 
     // recommended. Every time the GPU needs it, the upload heap will be marshalled 
     // over. Please read up on Default Heap usage. An upload heap is used here for 
     // code simplicity and because there are very few verts to actually transfer.
-    ThrowIfFailed(device->CreateCommittedResource(
+    ThrowIfFailed(graphicsAPI.m_device->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
         D3D12_HEAP_FLAG_NONE,
         &CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
@@ -246,7 +247,7 @@ void ModelCreate (ID3D12Device* device, ID3D12GraphicsCommandList* commandList, 
     subObject.m_vertexBufferView.SizeInBytes = vertexBufferSize;
 
     // init the per model constant buffer
-    model.m_constantBuffer.Init(device);
+    model.m_constantBuffer.Init(graphicsAPI);
     model.m_constantBuffer.Write(
         [] (SModelConstantBuffer& buffer) {
             buffer.modelMatrix = XMMatrixIdentity();

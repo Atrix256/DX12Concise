@@ -96,7 +96,7 @@ std::vector<UINT8> GenerateErrorTextureData (UINT TextureWidth, UINT TextureHeig
     return data;
 }
 
-void TextureMgr::Create(ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
+void TextureMgr::Create(cdGraphicsAPIDX12& graphicsAPI)
 {
     TextureMgr& mgr = Get(true);
     mgr.m_created = true;
@@ -123,7 +123,7 @@ void TextureMgr::Create(ID3D12Device* device, ID3D12GraphicsCommandList* command
     textureDesc.SampleDesc.Quality = 0;
     textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
-    ThrowIfFailed(device->CreateCommittedResource(
+    ThrowIfFailed(graphicsAPI.m_device->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
         D3D12_HEAP_FLAG_NONE,
         &textureDesc,
@@ -139,7 +139,7 @@ void TextureMgr::Create(ID3D12Device* device, ID3D12GraphicsCommandList* command
 
     // Create the GPU upload buffer.
     ID3D12Resource* textureUploadHeap;
-    ThrowIfFailed(device->CreateCommittedResource(
+    ThrowIfFailed(graphicsAPI.m_device->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
         D3D12_HEAP_FLAG_NONE,
         &CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize),
@@ -154,15 +154,15 @@ void TextureMgr::Create(ID3D12Device* device, ID3D12GraphicsCommandList* command
     textureData.RowPitch = TextureWidth * TexturePixelSize;
     textureData.SlicePitch = textureData.RowPitch * TextureHeight;
 
-    UpdateSubresources(commandList, newTexture.m_resource, textureUploadHeap, 0, 0, 1, &textureData);
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(newTexture.m_resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
+    UpdateSubresources(graphicsAPI.m_commandList, newTexture.m_resource, textureUploadHeap, 0, 0, 1, &textureData);
+    graphicsAPI.m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(newTexture.m_resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
 
 
     // add the texture upload heap to the list of heaps to clear when the frame completes
     mgr.m_textureUploadHeaps.insert(textureUploadHeap);
 
     // add the texture to the texture list
-    newTexture.m_heapID = Device::ReserveHeapID_CBV_SRV_UAV();
+    newTexture.m_heapID = graphicsAPI.ReserveGeneralHeapID();
     newTexture.m_resource = newTexture.m_resource;
 
     // Describe and create a SRV for the texture.
@@ -170,7 +170,7 @@ void TextureMgr::Create(ID3D12Device* device, ID3D12GraphicsCommandList* command
     newTexture.m_srvDesc.Format = textureDesc.Format;
     newTexture.m_srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
     newTexture.m_srvDesc.Texture2D.MipLevels = 1;
-    device->CreateShaderResourceView(newTexture.m_resource, &newTexture.m_srvDesc, MakeCPUHandle(newTextureID));
+    graphicsAPI.m_device->CreateShaderResourceView(newTexture.m_resource, &newTexture.m_srvDesc, MakeCPUHandle(graphicsAPI, newTextureID));
 
     // for debugging
     SetNameIndexed(newTexture.m_resource, L"Texture", (UINT)newTextureID);
@@ -195,7 +195,7 @@ void TextureMgr::Destroy()
     mgr.m_created = false;
 }
 
-TextureID TextureMgr::LoadTexture (ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const char* fileName, bool isLinear, bool makeMips)
+TextureID TextureMgr::LoadTexture (cdGraphicsAPIDX12& graphicsAPI, const char* fileName, bool isLinear, bool makeMips)
 {
     // TODO: temp?
     makeMips = false;
@@ -226,7 +226,7 @@ TextureID TextureMgr::LoadTexture (ID3D12Device* device, ID3D12GraphicsCommandLi
     mgr.m_textures.insert({ newTextureID,{} });
     STexture& newTexture = mgr.m_textures.find(newTextureID)->second;
 
-    newTexture.m_heapID = Device::ReserveHeapID_CBV_SRV_UAV();
+    newTexture.m_heapID = graphicsAPI.ReserveGeneralHeapID();
 
     // Describe and create a Texture2D.
     D3D12_RESOURCE_DESC textureDesc = {};
@@ -240,7 +240,7 @@ TextureID TextureMgr::LoadTexture (ID3D12Device* device, ID3D12GraphicsCommandLi
     textureDesc.SampleDesc.Quality = 0;
     textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
-    ThrowIfFailed(device->CreateCommittedResource(
+    ThrowIfFailed(graphicsAPI.m_device->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
         D3D12_HEAP_FLAG_NONE,
         &textureDesc,
@@ -252,7 +252,7 @@ TextureID TextureMgr::LoadTexture (ID3D12Device* device, ID3D12GraphicsCommandLi
 
     // Create the GPU upload buffer.
     ID3D12Resource* textureUploadHeap;
-    ThrowIfFailed(device->CreateCommittedResource(
+    ThrowIfFailed(graphicsAPI.m_device->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
         D3D12_HEAP_FLAG_NONE,
         &CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize),
@@ -265,7 +265,7 @@ TextureID TextureMgr::LoadTexture (ID3D12Device* device, ID3D12GraphicsCommandLi
     textureData.pData = pixels;
     textureData.RowPitch = textureWidth * 4;
     textureData.SlicePitch = textureData.RowPitch * textureHeight;
-    UpdateSubresources(commandList, newTexture.m_resource, textureUploadHeap, 0, D3D12CalcSubresource(0, 0, 0, numMips, 1), 1, &textureData);
+    UpdateSubresources(graphicsAPI.m_commandList, newTexture.m_resource, textureUploadHeap, 0, D3D12CalcSubresource(0, 0, 0, numMips, 1), 1, &textureData);
 
     // add the texture upload heap to the list of heaps to clear when the frame completes
     mgr.m_textureUploadHeaps.insert(textureUploadHeap);
@@ -292,7 +292,7 @@ TextureID TextureMgr::LoadTexture (ID3D12Device* device, ID3D12GraphicsCommandLi
 
             // Create the GPU upload buffer.
             ID3D12Resource* textureUploadHeap;
-            ThrowIfFailed(device->CreateCommittedResource(
+            ThrowIfFailed(graphicsAPI.m_device->CreateCommittedResource(
                 &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
                 D3D12_HEAP_FLAG_NONE,
                 &CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize),
@@ -307,21 +307,21 @@ TextureID TextureMgr::LoadTexture (ID3D12Device* device, ID3D12GraphicsCommandLi
             textureData.pData = &mipDataU8[0];
             textureData.RowPitch = width * 4;
             textureData.SlicePitch = textureData.RowPitch * height;
-            UpdateSubresources(commandList, newTexture.m_resource, textureUploadHeap, 0, D3D12CalcSubresource(i, 0, 0, numMips, 1), 1, &textureData);
+            UpdateSubresources(graphicsAPI.m_commandList, newTexture.m_resource, textureUploadHeap, 0, D3D12CalcSubresource(i, 0, 0, numMips, 1), 1, &textureData);
 
             // add the texture upload heap to the list of heaps to clear when the frame completes
             mgr.m_textureUploadHeaps.insert(textureUploadHeap);
         }
     }
 
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(newTexture.m_resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
+    graphicsAPI.m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(newTexture.m_resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
 
     // Describe and create a SRV for the texture.
     newTexture.m_srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     newTexture.m_srvDesc.Format = textureDesc.Format;
     newTexture.m_srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
     newTexture.m_srvDesc.Texture2D.MipLevels = numMips;
-    device->CreateShaderResourceView(newTexture.m_resource, &newTexture.m_srvDesc, MakeCPUHandle(newTextureID));
+    graphicsAPI.m_device->CreateShaderResourceView(newTexture.m_resource, &newTexture.m_srvDesc, MakeCPUHandle(graphicsAPI, newTextureID));
 
     // add this texture id by it's filename 
     mgr.m_texturesLoaded.insert({fileName, newTextureID});
@@ -334,7 +334,7 @@ TextureID TextureMgr::LoadTexture (ID3D12Device* device, ID3D12GraphicsCommandLi
     return newTextureID;
 }
 
-TextureID TextureMgr::LoadCubeMap (ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const char* baseFileName, bool isLinear)
+TextureID TextureMgr::LoadCubeMap (cdGraphicsAPIDX12& graphicsAPI, const char* baseFileName, bool isLinear)
 {
     static const size_t c_numFaces = 6;
 
@@ -381,7 +381,7 @@ TextureID TextureMgr::LoadCubeMap (ID3D12Device* device, ID3D12GraphicsCommandLi
     mgr.m_textures.insert({ newTextureID,{} });
     STexture& newTexture = mgr.m_textures.find(newTextureID)->second;
 
-    newTexture.m_heapID = Device::ReserveHeapID_CBV_SRV_UAV();
+    newTexture.m_heapID = graphicsAPI.ReserveGeneralHeapID();
 
     // Describe and create a Texture2D.
     D3D12_RESOURCE_DESC textureDesc = {};
@@ -395,7 +395,7 @@ TextureID TextureMgr::LoadCubeMap (ID3D12Device* device, ID3D12GraphicsCommandLi
     textureDesc.SampleDesc.Quality = 0;
     textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
-    ThrowIfFailed(device->CreateCommittedResource(
+    ThrowIfFailed(graphicsAPI.m_device->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
         D3D12_HEAP_FLAG_NONE,
         &textureDesc,
@@ -409,7 +409,7 @@ TextureID TextureMgr::LoadCubeMap (ID3D12Device* device, ID3D12GraphicsCommandLi
     {
         // Create the GPU upload buffer.
         ID3D12Resource* textureUploadHeap;
-        ThrowIfFailed(device->CreateCommittedResource(
+        ThrowIfFailed(graphicsAPI.m_device->CreateCommittedResource(
             &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
             D3D12_HEAP_FLAG_NONE,
             &CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize),
@@ -422,21 +422,21 @@ TextureID TextureMgr::LoadCubeMap (ID3D12Device* device, ID3D12GraphicsCommandLi
         textureData.pData = imagePixels[faceIndex];
         textureData.RowPitch = textureWidth[0] * 4;
         textureData.SlicePitch = textureData.RowPitch * textureHeight[0];
-        UpdateSubresources(commandList, newTexture.m_resource, textureUploadHeap, 0, (UINT)faceIndex, 1, &textureData);
+        UpdateSubresources(graphicsAPI.m_commandList, newTexture.m_resource, textureUploadHeap, 0, (UINT)faceIndex, 1, &textureData);
 
         // add the texture upload heap to the list of heaps to clear when the frame completes
         mgr.m_textureUploadHeaps.insert(textureUploadHeap);
     }
 
     // resource barier for all these copies
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(newTexture.m_resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
+    graphicsAPI.m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(newTexture.m_resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
 
     // Describe and create a SRV for the texture.
     newTexture.m_srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     newTexture.m_srvDesc.Format = textureDesc.Format;
     newTexture.m_srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
     newTexture.m_srvDesc.Texture2D.MipLevels = 1;
-    device->CreateShaderResourceView(newTexture.m_resource, &newTexture.m_srvDesc, MakeCPUHandle(newTextureID));
+    graphicsAPI.m_device->CreateShaderResourceView(newTexture.m_resource, &newTexture.m_srvDesc, MakeCPUHandle(graphicsAPI, newTextureID));
 
     // add this texture id by it's filename
     mgr.m_texturesLoadedCubeMaps.insert({fileName, newTextureID});
@@ -451,7 +451,7 @@ TextureID TextureMgr::LoadCubeMap (ID3D12Device* device, ID3D12GraphicsCommandLi
     return newTextureID;
 }
 
-TextureID TextureMgr::LoadCubeMapMips(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const char* baseFileName, int numMips, bool isLinear)
+TextureID TextureMgr::LoadCubeMapMips(cdGraphicsAPIDX12& graphicsAPI, const char* baseFileName, int numMips, bool isLinear)
 {
     static const size_t c_numFaces = 6;
     size_t numImages = c_numFaces * numMips;
@@ -508,7 +508,7 @@ TextureID TextureMgr::LoadCubeMapMips(ID3D12Device* device, ID3D12GraphicsComman
     mgr.m_textures.insert({ newTextureID,{} });
     STexture& newTexture = mgr.m_textures.find(newTextureID)->second;
 
-    newTexture.m_heapID = Device::ReserveHeapID_CBV_SRV_UAV();
+    newTexture.m_heapID = graphicsAPI.ReserveGeneralHeapID();
 
     // Describe and create a Texture2D.
     D3D12_RESOURCE_DESC textureDesc = {};
@@ -522,7 +522,7 @@ TextureID TextureMgr::LoadCubeMapMips(ID3D12Device* device, ID3D12GraphicsComman
     textureDesc.SampleDesc.Quality = 0;
     textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
-    ThrowIfFailed(device->CreateCommittedResource(
+    ThrowIfFailed(graphicsAPI.m_device->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
         D3D12_HEAP_FLAG_NONE,
         &textureDesc,
@@ -539,7 +539,7 @@ TextureID TextureMgr::LoadCubeMapMips(ID3D12Device* device, ID3D12GraphicsComman
         {
             // Create the GPU upload buffer.
             ID3D12Resource* textureUploadHeap;
-            ThrowIfFailed(device->CreateCommittedResource(
+            ThrowIfFailed(graphicsAPI.m_device->CreateCommittedResource(
                 &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
                 D3D12_HEAP_FLAG_NONE,
                 &CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize),
@@ -552,7 +552,7 @@ TextureID TextureMgr::LoadCubeMapMips(ID3D12Device* device, ID3D12GraphicsComman
             textureData.pData = imagePixels[imageIndex];
             textureData.RowPitch = textureWidth[mipIndex] * 4;
             textureData.SlicePitch = textureData.RowPitch * textureHeight[mipIndex];
-            UpdateSubresources(commandList, newTexture.m_resource, textureUploadHeap, 0, D3D12CalcSubresource(mipIndex, (UINT)faceIndex, 0, numMips, (UINT)c_numFaces), 1, &textureData);
+            UpdateSubresources(graphicsAPI.m_commandList, newTexture.m_resource, textureUploadHeap, 0, D3D12CalcSubresource(mipIndex, (UINT)faceIndex, 0, numMips, (UINT)c_numFaces), 1, &textureData);
 
             // add the texture upload heap to the list of heaps to clear when the frame completes
             mgr.m_textureUploadHeaps.insert(textureUploadHeap);
@@ -562,14 +562,14 @@ TextureID TextureMgr::LoadCubeMapMips(ID3D12Device* device, ID3D12GraphicsComman
     }
 
     // resource barier for all these copies
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(newTexture.m_resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
+    graphicsAPI.m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(newTexture.m_resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
 
     // Describe and create a SRV for the texture.
     newTexture.m_srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     newTexture.m_srvDesc.Format = textureDesc.Format;
     newTexture.m_srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
     newTexture.m_srvDesc.Texture2D.MipLevels = numMips;
-    device->CreateShaderResourceView(newTexture.m_resource, &newTexture.m_srvDesc, MakeCPUHandle(newTextureID));
+    graphicsAPI.m_device->CreateShaderResourceView(newTexture.m_resource, &newTexture.m_srvDesc, MakeCPUHandle(graphicsAPI, newTextureID));
 
     // add this texture id by it's filename
     mgr.m_texturesLoadedCubeMaps.insert({fileName, newTextureID});
@@ -584,7 +584,7 @@ TextureID TextureMgr::LoadCubeMapMips(ID3D12Device* device, ID3D12GraphicsComman
     return newTextureID;
 }
 
-TextureID TextureMgr::CreateUAVTexture(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, UINT64 width, UINT height)
+TextureID TextureMgr::CreateUAVTexture(cdGraphicsAPIDX12& graphicsAPI, UINT64 width, UINT height)
 {
     DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
@@ -594,13 +594,13 @@ TextureID TextureMgr::CreateUAVTexture(ID3D12Device* device, ID3D12GraphicsComma
 
     // create a new STexture
     STexture newTexture;
-    newTexture.m_heapID = Device::ReserveHeapID_CBV_SRV_UAV();
+    newTexture.m_heapID = graphicsAPI.ReserveGeneralHeapID();
     
     // create the resource for the uav
     D3D12_HEAP_PROPERTIES defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
     D3D12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, 1);
     bufferDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS | D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS;
-    ThrowIfFailed(device->CreateCommittedResource(
+    ThrowIfFailed(graphicsAPI.m_device->CreateCommittedResource(
         &defaultHeapProperties,
         D3D12_HEAP_FLAG_NONE,
         &bufferDesc,
@@ -609,7 +609,7 @@ TextureID TextureMgr::CreateUAVTexture(ID3D12Device* device, ID3D12GraphicsComma
         IID_PPV_ARGS(&newTexture.m_resource)));
 
     // create the resource for the uav that is invisible to shaders
-    ThrowIfFailed(device->CreateCommittedResource(
+    ThrowIfFailed(graphicsAPI.m_device->CreateCommittedResource(
         &defaultHeapProperties,
         D3D12_HEAP_FLAG_NONE,
         &bufferDesc,
@@ -626,10 +626,10 @@ TextureID TextureMgr::CreateUAVTexture(ID3D12Device* device, ID3D12GraphicsComma
     D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
     uavDesc.Format = format;
     uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-    device->CreateUnorderedAccessView(newTexture.m_resource, nullptr, &uavDesc, MakeCPUHandle(newTextureID));
+    graphicsAPI.m_device->CreateUnorderedAccessView(newTexture.m_resource, nullptr, &uavDesc, MakeCPUHandle(graphicsAPI, newTextureID));
 
     // create the uav that is invisible to shaders
-    device->CreateUnorderedAccessView(newTexture.m_resourceShaderInvisible, nullptr, &uavDesc, MakeCPUHandleShaderInvisible(newTextureID));
+    graphicsAPI.m_device->CreateUnorderedAccessView(newTexture.m_resourceShaderInvisible, nullptr, &uavDesc, MakeCPUHandleShaderInvisible(graphicsAPI, newTextureID));
 
     // for debugging
     SetNameIndexed(newTexture.m_resource, L"UAV", (UINT)newTextureID);
@@ -638,13 +638,20 @@ TextureID TextureMgr::CreateUAVTexture(ID3D12Device* device, ID3D12GraphicsComma
     return newTextureID;
 }
 
-HeapID_CBV_SRV_UAV TextureMgr::CreateTextureDescriptorTable(ID3D12Device* device, size_t numTextures, TextureID* textures)
+unsigned int TextureMgr::CreateTextureDescriptorTable(cdGraphicsAPIDX12& graphicsAPI, size_t numTextures, TextureID* textures)
 {
-    HeapID_CBV_SRV_UAV ret = Device::ReserveHeapID_CBV_SRV_UAV(numTextures);
-    for (size_t i = 0; i < numTextures; ++i)
+    unsigned int ret = graphicsAPI.ReserveGeneralHeapID((unsigned int)numTextures);
+    for (unsigned int i = 0; i < numTextures; ++i)
     {
         STexture& texture = GetTexture(textures[i]);
-        device->CreateShaderResourceView(texture.m_resource, &texture.m_srvDesc, Device::MakeCPUHandleCBV_SRV_UAV(HeapID_CBV_SRV_UAV((size_t)ret + i)));
+
+        CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(
+            graphicsAPI.m_generalHeap->GetCPUDescriptorHandleForHeapStart(),
+            ret + i,
+            graphicsAPI.m_generalHeapDescriptorSize
+        );
+
+        graphicsAPI.m_device->CreateShaderResourceView(texture.m_resource, &texture.m_srvDesc, cpuHandle);
     }
     return ret;
 }

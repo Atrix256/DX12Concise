@@ -23,6 +23,13 @@ public:
 
     bool CreateCommandList(ID3D12PipelineState* pso);
 
+    unsigned int ReserveGeneralHeapID(unsigned int count=1)
+    {
+        unsigned int ret = m_generalHeapDescriptorNextID;
+        m_generalHeapDescriptorNextID += count;
+        return ret;
+    }
+
     void Destroy()
     {
         for (ID3D12Resource* r : m_renderTargetsColor)

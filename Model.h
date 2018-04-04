@@ -45,6 +45,6 @@ struct SModel
     ConstantBuffer<SModelConstantBuffer>    m_constantBuffer;
 };
 
-bool ModelLoad (ID3D12Device* device, ID3D12GraphicsCommandList* commandList, SModel& model, const char* fileName, const char* baseFilePath, float scale, XMFLOAT3 offset, bool flipV);
+bool ModelLoad (cdGraphicsAPIDX12& graphicsAPI, SModel& model, const char* fileName, const char* baseFilePath, float scale, XMFLOAT3 offset, bool flipV);
 
-void ModelCreate (ID3D12Device* device, ID3D12GraphicsCommandList* commandList, SModel& model, bool calculateNormals, std::vector<Vertex>& triangleVertices, const char* debugName);
+void ModelCreate (cdGraphicsAPIDX12& graphicsAPI, SModel& model, bool calculateNormals, std::vector<Vertex>& triangleVertices, const char* debugName);

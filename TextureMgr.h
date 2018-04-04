@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DXSample.h"
-#include "Device.h"
+#include "dx12.h"
 
 #include <unordered_set>
 #include <unordered_map>
@@ -26,22 +26,22 @@ class TextureMgr
 {
 public:
 
-    static void Create (ID3D12Device* device, ID3D12GraphicsCommandList* commandList);
+    static void Create (cdGraphicsAPIDX12& graphicsAPI);
     static void Destroy ();
 
-    static TextureID LoadTexture (ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const char* fileName, bool isLinear, bool makeMips);
+    static TextureID LoadTexture (cdGraphicsAPIDX12& graphicsAPI, const char* fileName, bool isLinear, bool makeMips);
 
-    static TextureID LoadCubeMap (ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const char* baseFileName, bool isLinear);
+    static TextureID LoadCubeMap (cdGraphicsAPIDX12& graphicsAPI, const char* baseFileName, bool isLinear);
 
-    static TextureID LoadCubeMapMips (ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const char* baseFileName, int numMips, bool isLinear);
+    static TextureID LoadCubeMapMips (cdGraphicsAPIDX12& graphicsAPI, const char* baseFileName, int numMips, bool isLinear);
 
-    static TextureID CreateUAVTexture (ID3D12Device* device, ID3D12GraphicsCommandList* commandList, UINT64 width, UINT height);
+    static TextureID CreateUAVTexture (cdGraphicsAPIDX12& graphicsAPI, UINT64 width, UINT height);
 
-    static HeapID_CBV_SRV_UAV CreateTextureDescriptorTable(ID3D12Device* device, size_t numTextures, TextureID* textures);
+    static unsigned int CreateTextureDescriptorTable(cdGraphicsAPIDX12& graphicsAPI, size_t numTextures, TextureID* textures);
 
     static void OnFrameComplete ();
 
-    inline static CD3DX12_GPU_DESCRIPTOR_HANDLE MakeGPUHandle (TextureID index)
+    inline static CD3DX12_GPU_DESCRIPTOR_HANDLE MakeGPUHandle (cdGraphicsAPIDX12& graphicsAPI, TextureID index)
     {
         TextureMgr& mgr = Get();
 
@@ -50,10 +50,14 @@ public:
 
         STexture& texture = mgr.m_textures[index];
 
-        return Device::MakeGPUHandleCBV_SRV_UAV(texture.m_heapID);
+        return CD3DX12_GPU_DESCRIPTOR_HANDLE(
+            graphicsAPI.m_generalHeap->GetGPUDescriptorHandleForHeapStart(),
+            (UINT)texture.m_heapID,
+            graphicsAPI.m_generalHeapDescriptorSize
+        );
     }
 
-    inline static CD3DX12_GPU_DESCRIPTOR_HANDLE MakeGPUHandleShaderInvisible (TextureID index)
+    inline static CD3DX12_GPU_DESCRIPTOR_HANDLE MakeGPUHandleShaderInvisible (cdGraphicsAPIDX12& graphicsAPI, TextureID index)
     {
         TextureMgr& mgr = Get();
 
@@ -62,10 +66,14 @@ public:
 
         STexture& texture = mgr.m_textures[index];
 
-        return Device::MakeGPUHandle_ShaderInvisible_CBV_SRV_UAV(texture.m_heapID);
+        return CD3DX12_GPU_DESCRIPTOR_HANDLE(
+            graphicsAPI.m_generalHeapShaderInvisible->GetGPUDescriptorHandleForHeapStart(),
+            (UINT)texture.m_heapID,
+            graphicsAPI.m_generalHeapDescriptorSize
+        );
     }
 
-    inline static CD3DX12_CPU_DESCRIPTOR_HANDLE MakeCPUHandle (TextureID index)
+    inline static CD3DX12_CPU_DESCRIPTOR_HANDLE MakeCPUHandle (cdGraphicsAPIDX12& graphicsAPI, TextureID index)
     {
         TextureMgr& mgr = Get();
 
@@ -74,10 +82,14 @@ public:
 
         STexture& texture = mgr.m_textures[index];
 
-        return Device::MakeCPUHandleCBV_SRV_UAV(texture.m_heapID);
+        return CD3DX12_CPU_DESCRIPTOR_HANDLE(
+            graphicsAPI.m_generalHeap->GetCPUDescriptorHandleForHeapStart(),
+            (UINT)texture.m_heapID,
+            graphicsAPI.m_generalHeapDescriptorSize
+        );
     }
 
-    inline static CD3DX12_CPU_DESCRIPTOR_HANDLE MakeCPUHandleShaderInvisible (TextureID index)
+    inline static CD3DX12_CPU_DESCRIPTOR_HANDLE MakeCPUHandleShaderInvisible (cdGraphicsAPIDX12& graphicsAPI, TextureID index)
     {
         TextureMgr& mgr = Get();
 
@@ -86,10 +98,14 @@ public:
 
         STexture& texture = mgr.m_textures[index];
 
-        return Device::MakeCPUHandle_ShaderInvisible_CBV_SRV_UAV(texture.m_heapID);
+        return CD3DX12_CPU_DESCRIPTOR_HANDLE(
+            graphicsAPI.m_generalHeapShaderInvisible->GetCPUDescriptorHandleForHeapStart(),
+            (UINT)texture.m_heapID,
+            graphicsAPI.m_generalHeapDescriptorSize
+        );
     }
 
-    inline static ID3D12Resource* GetResource (TextureID index)
+    inline static ID3D12Resource* GetResource (cdGraphicsAPIDX12& graphicsAPI, TextureID index)
     {
         TextureMgr& mgr = Get();
 
@@ -101,7 +117,7 @@ public:
         return texture.m_resource;
     }
 
-    inline static ID3D12Resource* GetResourceShaderInvisible (TextureID index)
+    inline static ID3D12Resource* GetResourceShaderInvisible (cdGraphicsAPIDX12& graphicsAPI, TextureID index)
     {
         TextureMgr& mgr = Get();
 
@@ -119,7 +135,7 @@ private:
         D3D12_SHADER_RESOURCE_VIEW_DESC m_srvDesc = {};
         ID3D12Resource*                 m_resource  = nullptr;
         ID3D12Resource*                 m_resourceShaderInvisible = nullptr;
-        HeapID_CBV_SRV_UAV              m_heapID    = HeapID_CBV_SRV_UAV::invalid;
+        unsigned int                    m_heapID = (unsigned int)-1;
     };
 
 private:

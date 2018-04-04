@@ -1,6 +1,4 @@
-* make root signature use descriptor tables instead of a bunch of single SRVs!
- * make an enum for root signature usage?
-
+* delete Device.cpp / .h
 
 
 
@@ -46,3 +44,6 @@ dont need all of stb, could just get the headers you want
 
 
 * move dx12.h / .cpp into a library used by the other demos
+
+* things could hold onto their cpu / gpu handles instead of calculating them on demand
+ * heck, things (descriptor tables?) may be entirely representable by their handles alone
