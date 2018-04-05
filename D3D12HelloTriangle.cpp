@@ -686,10 +686,9 @@ void D3D12HelloTriangle::OnRender()
         ++frameCount;
     }
 
-	// Record all the commands we need to render the scene into the command list.
+	// make and execute command list
+    m_graphicsAPI.OpenCommandList(m_rootSignature, m_pipelineStateSkybox[0].Get());
 	PopulateCommandList();
-
-	// Execute the command list.
     m_graphicsAPI.CloseAndExecuteCommandList();
 
 	// Present the frame.
@@ -733,8 +732,6 @@ void D3D12HelloTriangle::SetMaterialTexturesForObject(EMaterial material)
 
 void D3D12HelloTriangle::PopulateCommandList()
 {
-    m_graphicsAPI.OpenCommandList(m_rootSignature, m_pipelineStateSkybox[0].Get());
-
     m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::SceneConstantBuffer, m_constantBuffer.GetGPUHandle(m_graphicsAPI));
     m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::TextureSampler, m_graphicsAPI.m_samplerHeap->GetGPUDescriptorHandleForHeapStart());
     m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::UAV, TextureMgr::MakeGPUHandle(m_graphicsAPI, m_uav));
