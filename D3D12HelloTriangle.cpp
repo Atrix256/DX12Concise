@@ -229,7 +229,7 @@ void D3D12HelloTriangle::OnInit()
 {
     m_graphicsAPI.Create(m_GPUDebug, false, FrameCount, m_width, m_height, Win32Application::GetHwnd());
     
-    m_rootSignature = m_graphicsAPI.MakeRootSignature(
+    m_rootSignature = m_graphicsAPI.CreateRootSignature(
         {
             { D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1 },
             { D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1 },
@@ -536,9 +536,7 @@ void D3D12HelloTriangle::LoadAssets()
     MakeProceduralMeshes();
 
     // Close the command list and execute it to begin the initial GPU setup.
-    ThrowIfFailed(m_graphicsAPI.m_commandList->Close());
-    ID3D12CommandList* ppCommandLists[] = { m_graphicsAPI.m_commandList };
-    m_graphicsAPI.m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+    m_graphicsAPI.CloseAndExecuteCommandList();
 
     m_constantBuffer.Init(m_graphicsAPI);
     m_constantBuffer.Write(
@@ -692,8 +690,7 @@ void D3D12HelloTriangle::OnRender()
 	PopulateCommandList();
 
 	// Execute the command list.
-	ID3D12CommandList* ppCommandLists[] = { m_graphicsAPI.m_commandList };
-    m_graphicsAPI.m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+    m_graphicsAPI.CloseAndExecuteCommandList();
 
 	// Present the frame.
     if (m_vsync)
@@ -736,21 +733,7 @@ void D3D12HelloTriangle::SetMaterialTexturesForObject(EMaterial material)
 
 void D3D12HelloTriangle::PopulateCommandList()
 {
-	// Command list allocators can only be reset when the associated 
-	// command lists have finished execution on the GPU; apps should use 
-	// fences to determine GPU execution progress.
-	ThrowIfFailed(m_graphicsAPI.m_commandAllocator->Reset());
-
-	// However, when ExecuteCommandList() is called on a particular command 
-	// list, that command list can then be reset at any time and must be before 
-	// re-recording.
-	ThrowIfFailed(m_graphicsAPI.m_commandList->Reset(m_graphicsAPI.m_commandAllocator, m_pipelineStateModels[0].Get()));
-
-	// Set necessary state.
-    m_graphicsAPI.m_commandList->SetGraphicsRootSignature(m_rootSignature);
-
-    ID3D12DescriptorHeap* ppHeaps[] = { m_graphicsAPI.m_generalHeap, m_graphicsAPI.m_samplerHeap };
-    m_graphicsAPI.m_commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+    m_graphicsAPI.OpenCommandList(m_rootSignature, m_pipelineStateSkybox[0].Get());
 
     m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::SceneConstantBuffer, m_constantBuffer.GetGPUHandle(m_graphicsAPI));
     m_graphicsAPI.m_commandList->SetGraphicsRootDescriptorTable(RootTableParameter::TextureSampler, m_graphicsAPI.m_samplerHeap->GetGPUDescriptorHandleForHeapStart());
@@ -922,8 +905,6 @@ void D3D12HelloTriangle::PopulateCommandList()
 
 	// Indicate that the back buffer will now be used to present.
     m_graphicsAPI.m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_graphicsAPI.m_renderTargetsColor[m_frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
-
-	ThrowIfFailed(m_graphicsAPI.m_commandList->Close());
 }
 
 void D3D12HelloTriangle::WaitForPreviousFrame()

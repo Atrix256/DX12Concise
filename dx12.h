@@ -17,7 +17,7 @@ class cdGraphicsAPIDX12
 public:
     bool Create(bool gpuDebug, bool useWarpDevice, unsigned int frameCount, unsigned int width, unsigned int height, HWND hWnd);
 
-    ID3D12RootSignature* MakeRootSignature(const std::vector<cdRootSignatureParameter>& rootSignatureParameters);
+    ID3D12RootSignature* CreateRootSignature(const std::vector<cdRootSignatureParameter>& rootSignatureParameters);
 
     bool CompileVSPS(const WCHAR* fileName, ID3DBlob*& vertexShader, ID3DBlob*& pixelShader, bool shaderDebug, const std::vector<D3D_SHADER_MACRO> &defines);
 
@@ -29,6 +29,9 @@ public:
         m_generalHeapDescriptorNextID += count;
         return ret;
     }
+
+    bool CloseAndExecuteCommandList();
+    bool OpenCommandList(ID3D12RootSignature* rootSignature, ID3D12PipelineState* pso);
 
     void Destroy()
     {

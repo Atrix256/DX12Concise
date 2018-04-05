@@ -286,7 +286,7 @@ bool cdGraphicsAPIDX12::Create(bool gpuDebug, bool useWarpDevice, unsigned int f
     return true;
 }
 
-ID3D12RootSignature* cdGraphicsAPIDX12::MakeRootSignature(const std::vector<cdRootSignatureParameter>& rootSignatureParameters)
+ID3D12RootSignature* cdGraphicsAPIDX12::CreateRootSignature(const std::vector<cdRootSignatureParameter>& rootSignatureParameters)
 {
     D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
 
@@ -370,6 +370,35 @@ bool cdGraphicsAPIDX12::CreateCommandList(ID3D12PipelineState* pso)
 {
     if (FAILED(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator, pso, IID_PPV_ARGS(&m_commandList))))
         return false;
+
+    return true;
+}
+
+bool cdGraphicsAPIDX12::CloseAndExecuteCommandList()
+{
+    if (FAILED(m_commandList->Close()))
+        return false;
+
+    ID3D12CommandList* ppCommandLists[] = { m_commandList };
+    m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+    return true;
+}
+
+bool cdGraphicsAPIDX12::OpenCommandList(ID3D12RootSignature* rootSignature, ID3D12PipelineState* pso)
+{
+    // Command list allocators can only be reset when the associated 
+    // command lists have finished execution on the GPU; apps should use 
+    // fences to determine GPU execution progress.
+    if (FAILED(m_commandAllocator->Reset()))
+        return false;
+
+    if (FAILED(m_commandList->Reset(m_commandAllocator, pso)))
+        return false;
+
+    m_commandList->SetGraphicsRootSignature(rootSignature);
+
+    ID3D12DescriptorHeap* ppHeaps[] = { m_generalHeap, m_samplerHeap };
+    m_commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 
     return true;
 }

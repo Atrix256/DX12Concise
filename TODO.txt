@@ -26,6 +26,8 @@ dont need all of stb, could just get the headers you want
  * and make root signature
  * and compile vsps
  * and CreateCommandList
+ * and CloseAndExecuteCommandList
+ * and OpenCommandList
 
 * it would be nice if the app didn't have to deal with "what is the current frame index", but maybe the dx12 api would give you the right one to use
 
@@ -47,3 +49,11 @@ dont need all of stb, could just get the headers you want
 
 * things could hold onto their cpu / gpu handles instead of calculating them on demand
  * heck, things (descriptor tables?) may be entirely representable by their handles alone
+
+* use a texture sampler descriptor table?
+
+* Make a macro that makes an object that takes a lambda to run on exit. Use it on init to clean up.
+
+* for creating descriptor tables - CopyDescriptorsSimple instead of creating new srv's each time! have each texture have an srv, use this to copy to descriptor table
+
+* do proper frame waiting instead of doing how you do it
