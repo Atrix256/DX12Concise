@@ -159,7 +159,7 @@ void TextureMgr::Create(cdGraphicsAPIDX12& graphicsAPI)
 
 
     // add the texture upload heap to the list of heaps to clear when the frame completes
-    mgr.m_textureUploadHeaps.insert(textureUploadHeap);
+    graphicsAPI.m_textureUploadHeaps.push_back(textureUploadHeap);
 
     // add the texture to the texture list
     newTexture.m_heapID = graphicsAPI.ReserveGeneralHeapID();
@@ -179,9 +179,6 @@ void TextureMgr::Create(cdGraphicsAPIDX12& graphicsAPI)
 void TextureMgr::Destroy()
 {
     TextureMgr& mgr = Get();
-
-    // make sure texture upload heaps are clear
-    OnFrameComplete();
 
     // free texture resources
     for (auto it : mgr.m_textures)
@@ -268,7 +265,7 @@ TextureID TextureMgr::LoadTexture (cdGraphicsAPIDX12& graphicsAPI, const char* f
     UpdateSubresources(graphicsAPI.m_commandList, newTexture.m_resource, textureUploadHeap, 0, D3D12CalcSubresource(0, 0, 0, numMips, 1), 1, &textureData);
 
     // add the texture upload heap to the list of heaps to clear when the frame completes
-    mgr.m_textureUploadHeaps.insert(textureUploadHeap);
+    graphicsAPI.m_textureUploadHeaps.push_back(textureUploadHeap);
     
     // update subsequent mips - box blur for now. should do something better later if this is noticeably bad looking.
     if (numMips > 1)
@@ -310,7 +307,7 @@ TextureID TextureMgr::LoadTexture (cdGraphicsAPIDX12& graphicsAPI, const char* f
             UpdateSubresources(graphicsAPI.m_commandList, newTexture.m_resource, textureUploadHeap, 0, D3D12CalcSubresource(i, 0, 0, numMips, 1), 1, &textureData);
 
             // add the texture upload heap to the list of heaps to clear when the frame completes
-            mgr.m_textureUploadHeaps.insert(textureUploadHeap);
+            graphicsAPI.m_textureUploadHeaps.push_back(textureUploadHeap);
         }
     }
 
@@ -425,7 +422,7 @@ TextureID TextureMgr::LoadCubeMap (cdGraphicsAPIDX12& graphicsAPI, const char* b
         UpdateSubresources(graphicsAPI.m_commandList, newTexture.m_resource, textureUploadHeap, 0, (UINT)faceIndex, 1, &textureData);
 
         // add the texture upload heap to the list of heaps to clear when the frame completes
-        mgr.m_textureUploadHeaps.insert(textureUploadHeap);
+        graphicsAPI.m_textureUploadHeaps.push_back(textureUploadHeap);
     }
 
     // resource barier for all these copies
@@ -555,7 +552,7 @@ TextureID TextureMgr::LoadCubeMapMips(cdGraphicsAPIDX12& graphicsAPI, const char
             UpdateSubresources(graphicsAPI.m_commandList, newTexture.m_resource, textureUploadHeap, 0, D3D12CalcSubresource(mipIndex, (UINT)faceIndex, 0, numMips, (UINT)c_numFaces), 1, &textureData);
 
             // add the texture upload heap to the list of heaps to clear when the frame completes
-            mgr.m_textureUploadHeaps.insert(textureUploadHeap);
+            graphicsAPI.m_textureUploadHeaps.push_back(textureUploadHeap);
 
             ++imageIndex;
         }
@@ -654,15 +651,4 @@ unsigned int TextureMgr::CreateTextureDescriptorTable(cdGraphicsAPIDX12& graphic
         graphicsAPI.m_device->CreateShaderResourceView(texture.m_resource, &texture.m_srvDesc, cpuHandle);
     }
     return ret;
-}
-
-void TextureMgr::OnFrameComplete ()
-{
-    // release all texture upload heaps now that we are done with them
-    TextureMgr& mgr = Get();
-
-    for (ID3D12Resource* res : mgr.m_textureUploadHeaps)
-        res->Release();
-
-    mgr.m_textureUploadHeaps.clear();
 }

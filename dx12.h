@@ -33,11 +33,22 @@ public:
     bool CloseAndExecuteCommandList();
     bool OpenCommandList(ID3D12RootSignature* rootSignature, ID3D12PipelineState* pso);
 
+    void OnFrameComplete()
+    {
+        for (ID3D12Resource* r : m_textureUploadHeaps)
+            SAFE_RELEASE(r);
+
+        m_textureUploadHeaps.clear();
+    }
+
     void Destroy()
     {
         for (ID3D12Resource* r : m_renderTargetsColor)
             SAFE_RELEASE(r);
         m_renderTargetsColor.clear();
+
+        for (ID3D12Resource* r : m_textureUploadHeaps)
+            SAFE_RELEASE(r);
 
         SAFE_RELEASE(m_depthStencil);
         SAFE_RELEASE(m_rtvHeap);
@@ -73,6 +84,9 @@ public:
     unsigned int m_generalHeapDescriptorSize = 0;
 
     unsigned int m_generalHeapDescriptorNextID = 0;
+
+    // kept until the texture uploads are done
+    std::vector<ID3D12Resource*>    m_textureUploadHeaps;
 };
 
 // Number of descriptors allowed of each type. Increase these counts if needed

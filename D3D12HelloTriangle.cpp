@@ -580,7 +580,7 @@ void D3D12HelloTriangle::LoadAssets()
 		WaitForPreviousFrame();
 	}
 
-    TextureMgr::OnFrameComplete();
+    m_graphicsAPI.OnFrameComplete();
 }
 
 // Update frame-based values.
@@ -698,6 +698,8 @@ void D3D12HelloTriangle::OnRender()
         ThrowIfFailed(m_graphicsAPI.m_swapChain->Present(0, 0));
 
 	WaitForPreviousFrame();
+
+    m_graphicsAPI.OnFrameComplete();
 }
 
 void D3D12HelloTriangle::OnDestroy()

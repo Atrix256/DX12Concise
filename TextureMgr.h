@@ -39,8 +39,6 @@ public:
 
     static unsigned int CreateTextureDescriptorTable(cdGraphicsAPIDX12& graphicsAPI, size_t numTextures, TextureID* textures);
 
-    static void OnFrameComplete ();
-
     inline static CD3DX12_GPU_DESCRIPTOR_HANDLE MakeGPUHandle (cdGraphicsAPIDX12& graphicsAPI, TextureID index)
     {
         TextureMgr& mgr = Get();
@@ -170,9 +168,6 @@ private:
     }
 
     bool m_created = false;
-
-    // kept until the texture uploads are done
-    std::unordered_set<ID3D12Resource*>             m_textureUploadHeaps;
 
     // texture ID to texture resource map
     std::unordered_map<TextureID, STexture>         m_textures;
