@@ -227,7 +227,7 @@ D3D12HelloTriangle::D3D12HelloTriangle(UINT width, UINT height, std::wstring nam
 
 void D3D12HelloTriangle::OnInit()
 {
-    m_graphicsAPI.Create(m_GPUDebug, false, FrameCount, m_width, m_height, Win32Application::GetHwnd());
+    m_graphicsAPI.Create(m_GPUDebug, false, 2, m_width, m_height, Win32Application::GetHwnd());
     
     m_rootSignature = m_graphicsAPI.CreateRootSignature(
         {

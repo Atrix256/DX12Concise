@@ -148,7 +148,6 @@ public:
     virtual void OnMouseMove(int relX, int relY);
 
 private:
-	static const UINT FrameCount = 2;
 
 	// Pipeline objects.
 	CD3DX12_VIEWPORT m_viewport;
@@ -171,8 +170,6 @@ private:
 	UINT64 m_fenceValue;
 
     void MakePSOs();
-
-	void LoadPipeline();
 
     void LoadTextures();
     void LoadSkyboxes();

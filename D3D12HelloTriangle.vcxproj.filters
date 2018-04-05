@@ -48,13 +48,13 @@
     <ClInclude Include="Win32Application.h">
       <Filter>Sample Code</Filter>
     </ClInclude>
-    <ClInclude Include="TextureMgr.h">
-      <Filter>My Code</Filter>
+    <ClInclude Include="dx12.h">
+      <Filter>New Code</Filter>
     </ClInclude>
     <ClInclude Include="Math.h">
-      <Filter>My Code</Filter>
+      <Filter>New Code</Filter>
     </ClInclude>
-    <ClInclude Include="dx12.h">
+    <ClInclude Include="TextureMgr.h">
       <Filter>New Code</Filter>
     </ClInclude>
   </ItemGroup>
@@ -80,10 +80,10 @@
     <ClCompile Include="Win32Application.cpp">
       <Filter>Sample Code</Filter>
     </ClCompile>
-    <ClCompile Include="TextureMgr.cpp">
-      <Filter>My Code</Filter>
-    </ClCompile>
     <ClCompile Include="dx12.cpp">
+      <Filter>New Code</Filter>
+    </ClCompile>
+    <ClCompile Include="TextureMgr.cpp">
       <Filter>New Code</Filter>
     </ClCompile>
   </ItemGroup>

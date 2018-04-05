@@ -1,5 +1,5 @@
-* delete Device.cpp / .h
-
+* start putting stuff into a re-usable library
+ * i think texturemanager can survive, it's "ok"
 
 
 Just need to make a simple concise dx12 base.  
@@ -57,3 +57,5 @@ dont need all of stb, could just get the headers you want
 * for creating descriptor tables - CopyDescriptorsSimple instead of creating new srv's each time! have each texture have an srv, use this to copy to descriptor table
 
 * do proper frame waiting instead of doing how you do it
+
+* get rid of use of Microsoft::WRL::ComPtr
